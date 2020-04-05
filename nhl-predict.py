@@ -26,28 +26,46 @@ def mean_confidence_interval(data, confidence=0.95):
 
 
 
-def rf_grid_search_CV(dm, clf, params_grid):
+def rf_grid_search_CV(dm, param_grid):
     print("## Grid Search CV ##: Random Forest")
-    for dt in [False]:
-        for dc in [False]:
-            for scale in ['std']:
-                for params in ParameterGrid(params_grid):
-                    start = time.time()
-                    results_train = []
-                    results_test = []
-                    print(params)
-                    print("'dummy_teams': {}, 'dummy_coaches': {}, 'scale': {} ---> ".format(dt, dc, scale), end='', flush=True)
-                    for fold_i in range(5):
-                        x_train, x_test, y_train, y_test = dm.get_fold(fold_i, dt, dc, scale)
-                        clf = RandomForestClassifier(**params, n_jobs=-1)
-                        clf.fit(x_train, y_train)
-                        results_train.append(clf.score(x_train, y_train)*100)
-                        results_test.append(clf.score(x_test, y_test)*100)
-                    m_train, ci_train = mean_confidence_interval(results_train)
-                    m_test, ci_test = mean_confidence_interval(results_test)
-                    print("train: {:.2f}% +-{:.2f}%; test: {:.2f}% +-{:.2f}%".format(m_train, ci_train, m_test, ci_test))
-                    end = time.time()
-                    print(25*"-", "done in {:.2f} s".format(end-start), 25*"-")
+    results = {'dummy_teams': [], 'dummy_coaches': [], 'scale': []}
+    for param_name in ParameterGrid(param_grid)[0].keys():
+        results[param_name] = []
+    results['acc_train'] = []
+    results['ci_train'] = []
+    results['acc_test'] = []
+    results['ci_test'] = []
+    results['time'] = []
+    for scale in ['std', None]:
+        for params in ParameterGrid(param_grid):
+            results['dummy_teams'].append(False)
+            results['dummy_coaches'].append(False)
+            results['scale'].append(scale)
+            for param_name in params.keys():
+                results[param_name].append(params[param_name])
+            results_train = []
+            results_test = []
+            print(params)
+            print("'dummy_teams': {}, 'dummy_coaches': {}, 'scale': {} ---> ".format(False, False, scale), end='', flush=True)
+            start = time.time()
+            for fold_i in range(5):
+                x_train, x_test, y_train, y_test = dm.get_fold(fold_i, False, False, scale)
+                clf = RandomForestClassifier(**params, n_jobs=10)
+                clf.fit(x_train, y_train)
+                results_train.append(clf.score(x_train, y_train)*100)
+                results_test.append(clf.score(x_test, y_test)*100)
+            m_train, ci_train = mean_confidence_interval(results_train)
+            m_test, ci_test = mean_confidence_interval(results_test)
+            end = time.time()
+            results['acc_train'].append(m_train)
+            results['ci_train'].append(ci_train)
+            results['acc_test'].append(m_test)
+            results['ci_test'].append(ci_test)
+            results['time'].append(np.round(end-start, 2))
+            print("train: {:.2f}% +-{:.2f}%; test: {:.2f}% +-{:.2f}%".format(m_train, ci_train, m_test, ci_test))
+            print(25*"-", "done in {:.2f} s".format(end-start), 25*"-")
+    results = pd.DataFrame.from_dict(results)
+    results.to_csv("results/random_forest_gridsearch.csv")
 
 
 if __name__ == "__main__":
@@ -61,4 +79,4 @@ if __name__ == "__main__":
         'min_samples_leaf': [1, 4, 16],
         'max_features': [None, 'sqrt', 'log2'],
     }
-    rf_grid_search_CV(dm, None, params)
+    rf_grid_search_CV(dm, params)
