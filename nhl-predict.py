@@ -36,7 +36,7 @@ def rf_grid_search_CV(dm, param_grid):
     results['acc_test'] = []
     results['ci_test'] = []
     results['time'] = []
-    for scale in ['std', None]:
+    for scale in ['std']:
         for params in ParameterGrid(param_grid):
             results['dummy_teams'].append(False)
             results['dummy_coaches'].append(False)
@@ -65,18 +65,18 @@ def rf_grid_search_CV(dm, param_grid):
             print("train: {:.2f}% +-{:.2f}%; test: {:.2f}% +-{:.2f}%".format(m_train, ci_train, m_test, ci_test))
             print(25*"-", "done in {:.2f} s".format(end-start), 25*"-")
     results = pd.DataFrame.from_dict(results)
-    results.to_csv("results/random_forest_gridsearch.csv")
+    results.to_csv("results/random_forest_gridsearch_2.csv")
 
 
 if __name__ == "__main__":
     dm = DatasetManager(games_hr_fn=None)
     clf = RandomForestClassifier()
     params = {
-        'n_estimators': [50, 400, 800],
-        'criterion': ['gini', 'entropy'],
-        'max_depth': [100, 400, None],
-        'min_samples_split': [2, 8, 32],
-        'min_samples_leaf': [1, 4, 16],
-        'max_features': [None, 'sqrt', 'log2'],
+        'n_estimators': [50, 100],
+        'criterion': ['entropy'],
+        'max_depth': [None],
+        'min_samples_split': [2, 4, 8, 16],
+        'min_samples_leaf': [1, 2, 3, 4, 5, 6],
+        'max_features': [None],
     }
     rf_grid_search_CV(dm, params)
