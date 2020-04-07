@@ -1,11 +1,9 @@
 from dataset_manager import DatasetManager
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
 import numpy as np
 import scipy.stats
 import pandas as pd
 import plotly.graph_objects as go
-from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
@@ -111,6 +109,7 @@ def rf_grid_search_CV(dm, param_grid):
 if __name__ == "__main__":
     dm = DatasetManager(games_hr_fn=None)
     params = {
+        'n_estimators': [40, 80, 160, 320]
         'criterion': ['entropy'],
         'max_depth': [20, 40, 80, 160, 320, 640],
         'min_samples_split': [2, 4, 8, 16],
