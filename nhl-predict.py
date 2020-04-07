@@ -70,13 +70,18 @@ def rf_grid_search_CV(dm, param_grid):
 
 if __name__ == "__main__":
     dm = DatasetManager(games_hr_fn=None)
-    clf = RandomForestClassifier()
-    params = {
-        'n_estimators': [50],
-        'criterion': ['entropy'],
-        'max_depth': [300, 500],
-        'min_samples_split': [2, 4, 8, 16],
-        'min_samples_leaf': [1, 2, 3, 4, 5, 6],
-        'max_features': [None],
-    }
-    rf_grid_search_CV(dm, params)
+    results_train = []
+    results_test = []
+    for i in range(5):
+        x_train, x_test, y_train, y_test = dm.get_fold(i, False, False, None)
+        clf = RandomForestClassifier(n_estimators=800, criterion='entropy', max_depth=500, min_samples_split=8,
+                                     min_samples_leaf=1, max_features=None, verbose=1, n_jobs=15)
+        clf.fit(x_train, y_train)
+        results_train.append(clf.score(x_train, y_train)*100)
+        results_test.append(clf.score(x_test, y_test)*100)
+    print(results_train)
+    print(results_train)
+    m_train, ci_train = mean_confidence_interval(results_train)
+    m_test, ci_test = mean_confidence_interval(results_test)
+    print("Train: {:.2f}% +-{:.2f}%".format(m_train, ci_train))
+    print("Test: {:.2f}% +-{:.2f}%".format(m_test, ci_test))
