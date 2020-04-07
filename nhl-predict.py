@@ -50,7 +50,7 @@ def rf_grid_search_CV(dm, param_grid):
             start = time.time()
             for fold_i in range(5):
                 x_train, x_test, y_train, y_test = dm.get_fold(fold_i, False, False, scale)
-                clf = RandomForestClassifier(**params, n_jobs=10)
+                clf = RandomForestClassifier(**params, n_jobs=15)
                 clf.fit(x_train, y_train)
                 results_train.append(clf.score(x_train, y_train)*100)
                 results_test.append(clf.score(x_test, y_test)*100)
@@ -72,9 +72,9 @@ if __name__ == "__main__":
     dm = DatasetManager(games_hr_fn=None)
     clf = RandomForestClassifier()
     params = {
-        'n_estimators': [50, 100],
+        'n_estimators': [50],
         'criterion': ['entropy'],
-        'max_depth': [None],
+        'max_depth': [300, 500],
         'min_samples_split': [2, 4, 8, 16],
         'min_samples_leaf': [1, 2, 3, 4, 5, 6],
         'max_features': [None],
