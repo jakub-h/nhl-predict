@@ -109,12 +109,11 @@ def rf_grid_search_CV(dm, param_grid):
 if __name__ == "__main__":
     dm = DatasetManager(games_hr_fn=None)
     params = {
-        'n_estimators': [40, 80, 160, 320]
+        'n_estimators': [80, 160, 320],
         'criterion': ['entropy'],
-        'max_depth': [20, 40, 80, 160, 320, 640],
-        'min_samples_split': [2, 4, 8, 16],
-        'min_samples_leaf': [1, 2, 3, 4, 5, 6],
-        'max_features': [None],
-        'splitter': ['random', 'best']
+        'max_depth': [160, 320, 640, 1280],
+        'min_samples_split': [2, 8, 32],
+        'min_samples_leaf': [1, 5, 10, 20],
+        'max_features': [None]
     }
     erf_grid_search_CV(dm, params)
