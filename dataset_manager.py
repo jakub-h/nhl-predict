@@ -352,6 +352,104 @@ class DatasetManager():
             print("done in {:.2f} s".format(end - start))
 
 
+    def create_seasonal_split(self, test_season=2019, first_games_to_train=100, train_seasons=[2016, 2017, 2018]):
+        print("## DatasetManager ##: Creating seasonal split (test_season: {} with first {} games as train; train_seasons: {}) ".format(
+                    test_season, first_games_to_train, sorted(train_seasons)))
+        if self._games_hr is None:
+            print("You must load or create human readable dataset first!")
+            return
+
+        print("... ", end='', flush=True)
+        start = time.time()
+        indices = self._games_hr.index
+        train_ind = []
+        test_ind = []
+        for index in indices:
+            i_season = int(str(index)[:4])
+            if i_season in train_seasons:
+                train_ind.append(index)
+            elif i_season == test_season:
+                i_game = int(str(index)[-4:])
+                if i_game <= first_games_to_train:
+                    train_ind.append(index)
+                else:
+                    test_ind.append(index)
+        train_ind = np.array(train_ind)
+        test_ind = np.array(test_ind)
+
+        # TRAIN DATASET
+        train = self._games_hr.copy().loc[train_ind]
+        # GOALS -> result (1: home win, 0: regulation draw, -1:away win)
+        train['result'] = 1 - train['reg_draw']
+        goal_diff = train.loc[train['result'] == 1, 'home_goals'] - train.loc[train['result'] == 1, 'away_goals']
+        train.loc[train['result'] == 1, 'result'] = np.sign(goal_diff)
+        train.drop(columns=['home_goals', 'away_goals', 'reg_draw'], inplace=True)
+        # TEAMS
+        train.rename(columns={"home_team_name": "home_team", "away_team_name": "away_team"}, inplace=True)
+        self._team_encoder = LabelEncoder()
+        self._team_encoder.fit(sorted(train['home_team']))
+        train['home_team'] = self._team_encoder.transform(train['home_team'])
+        train['away_team'] = self._team_encoder.transform(train['away_team'])
+        # COACHES
+        # merge all coaches with 20 or less games to 'other' value
+        coach_counts = train['home_coach'].value_counts() + train['away_coach'].value_counts()
+        train['home_coach'] = train['home_coach'].apply(lambda coach_name: coach_name if coach_counts[coach_name] > 20 else "other")
+        train['away_coach'] = train['away_coach'].apply(lambda coach_name: coach_name if coach_counts[coach_name] > 20 else "other")
+        # encoding
+        self._coach_encoder = LabelEncoder()
+        self._coach_encoder.fit(np.concatenate([train['home_coach'], train['away_coach']]))
+        train['home_coach'] = self._coach_encoder.transform(train['home_coach'])
+        train['away_coach'] = self._coach_encoder.transform(train['away_coach'])
+        # PLAYERS
+        # merge all players with 100 or less minutes to 'other' value
+        other_players = []
+        for player_id in self._player_names['id_to_name'].keys():
+            if (train["{}_home".format(player_id)].sum() + train['{}_away'.format(player_id)].sum()) <= 6000:
+                other_players.append(player_id)
+        train['other_home'] = np.zeros(train.shape[0], dtype=int)
+        train['other_away'] = np.zeros(train.shape[0], dtype=int)
+        for player_id in other_players:
+            train['other_home'] += train['{}_home'.format(player_id)]
+            train['other_away'] += train['{}_away'.format(player_id)]
+            train.drop(columns=['{}_home'.format(player_id), '{}_away'.format(player_id)], inplace=True)
+        # SAVE
+        out_fn = "{}-{}_".format(str(test_season)[-2:], first_games_to_train)
+        for season in sorted(train_seasons):
+            out_fn += "{}".format(str(season)[-2:])
+        train.to_csv("seasonal_splits/train_{}.csv".format(out_fn))
+
+        # TEST DATASET
+        test = self._games_hr.copy().loc[test_ind]
+        # GOALS -> result (1: home win, 0: regulation draw, -1: away win)
+        test['result'] = 1 - test['reg_draw']
+        goal_diff = test.loc[test['result'] == 1, 'home_goals'] - test.loc[test['result'] == 1, 'away_goals']
+        test.loc[test['result'] == 1, 'result'] = np.sign(goal_diff)
+        test.drop(columns=['home_goals', 'away_goals', 'reg_draw'], inplace=True)
+        # TEAMS
+        test.rename(columns={"home_team_name": "home_team", "away_team_name": "away_team"}, inplace=True)
+        test['home_team'] = self._team_encoder.transform(test['home_team'])
+        test['away_team'] = self._team_encoder.transform(test['away_team'])
+        # COACHES
+        # mark all coaches not presented in train's schema as 'other'
+        test['home_coach'] = test['home_coach'].apply(lambda coach_name: coach_name if coach_name in self._coach_encoder.classes_ else "other")
+        test['away_coach'] = test['away_coach'].apply(lambda coach_name: coach_name if coach_name in self._coach_encoder.classes_ else "other")
+        # encoding
+        test['home_coach'] = self._coach_encoder.transform(test['home_coach'])
+        test['away_coach'] = self._coach_encoder.transform(test['away_coach'])
+        # PLAYERS
+        # mark all players not presented in train's schema as 'other'
+        test['other_home'] = np.zeros(test.shape[0], dtype=int)
+        test['other_away'] = np.zeros(test.shape[0], dtype=int)
+        for player_id in other_players:
+            test['other_home'] += test['{}_home'.format(player_id)]
+            test['other_away'] += test['{}_away'.format(player_id)]
+            test.drop(columns=['{}_home'.format(player_id), '{}_away'.format(player_id)], inplace=True)
+        # SAVE
+        test.to_csv("seasonal_splits/test_{}.csv".format(out_fn))
+        end = time.time()
+        print("done in {:.2f} s".format(end - start))
+
+
     def get_fold(self, i, dummy_teams=False, dummy_coaches=False, scale=None):
         fn = "{}".format(i)
         if dummy_teams:
@@ -374,6 +472,22 @@ class DatasetManager():
             sys.exit()
         return train.drop(columns=['result']), test.drop(columns=['result']), train['result'], test['result']
         
+
+    def get_seasonal_split(self, test_season, first_games_to_train, train_seasons):
+        fn = "{}-{}_".format(str(test_season)[-2:], first_games_to_train)
+        for season in sorted(train_seasons):
+            fn += str(season)[-2:]
+        try:
+            train = pd.read_csv("seasonal_splits/train_{}.csv".format(fn), index_col=0)
+        except FileNotFoundError:
+            print("## DatasetManager ##: file 'train_{}.csv' does not exist (Have you created folds already?)".format(fn))
+            sys.exit()
+        try:
+            test = pd.read_csv("seasonal_splits/test_{}.csv".format(fn), index_col=0)
+        except FileNotFoundError:
+            print("## DatasetManager ##: file 'test_{}.csv' does not exist (Have you created folds already?)".format(fn))
+            sys.exit()
+        return train.drop(columns=['result']), test.drop(columns=['result']), train['result'], test['result']
 
        
     
