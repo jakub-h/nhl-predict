@@ -174,7 +174,7 @@ def only_sure():
 
 if __name__ == "__main__":
     dm = DatasetManager()
-
+    
     for test_season in [2017, 2018, 2019]:
         for train_num in range(1, test_season-2015):
             train_seasons = []

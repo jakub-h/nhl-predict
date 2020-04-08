@@ -1,0 +1,101 @@
+## DatasetManager ##: Initialization
+--> players 'ID <-> name' dictionary loaded from: player_names.json
+--> teams 'ID <-> name' dictionary loaded from: team_names.json
+--> HR dataset loaded from: human_readable.csv
+## DatasetManager ##: Creating seasonal split (test_season: 2017 with first 100 games as train; train_seasons: [2016]) 
+... done in 17.17 s
+## DatasetManager ##: Creating seasonal split (test_season: 2017 with first 200 games as train; train_seasons: [2016]) 
+... done in 16.37 s
+## DatasetManager ##: Creating seasonal split (test_season: 2017 with first 400 games as train; train_seasons: [2016]) 
+... done in 16.87 s
+## DatasetManager ##: Creating seasonal split (test_season: 2017 with first 800 games as train; train_seasons: [2016]) 
+... done in 16.60 s
+## DatasetManager ##: Creating seasonal split (test_season: 2018 with first 100 games as train; train_seasons: [2017]) 
+... done in 16.78 s
+## DatasetManager ##: Creating seasonal split (test_season: 2018 with first 200 games as train; train_seasons: [2017]) 
+... done in 16.38 s
+## DatasetManager ##: Creating seasonal split (test_season: 2018 with first 400 games as train; train_seasons: [2017]) 
+... done in 16.58 s
+## DatasetManager ##: Creating seasonal split (test_season: 2018 with first 800 games as train; train_seasons: [2017]) 
+... done in 15.29 s
+## DatasetManager ##: Creating seasonal split (test_season: 2018 with first 100 games as train; train_seasons: [2016, 2017]) 
+... done in 22.31 s
+## DatasetManager ##: Creating seasonal split (test_season: 2018 with first 200 games as train; train_seasons: [2016, 2017]) 
+... done in 20.56 s
+## DatasetManager ##: Creating seasonal split (test_season: 2018 with first 400 games as train; train_seasons: [2016, 2017]) 
+... done in 20.64 s
+## DatasetManager ##: Creating seasonal split (test_season: 2018 with first 800 games as train; train_seasons: [2016, 2017]) 
+... done in 19.05 s
+## DatasetManager ##: Creating seasonal split (test_season: 2019 with first 100 games as train; train_seasons: [2018]) 
+... done in 16.02 s
+## DatasetManager ##: Creating seasonal split (test_season: 2019 with first 200 games as train; train_seasons: [2018]) 
+... done in 15.53 s
+## DatasetManager ##: Creating seasonal split (test_season: 2019 with first 400 games as train; train_seasons: [2018]) 
+... done in 14.97 s
+## DatasetManager ##: Creating seasonal split (test_season: 2019 with first 800 games as train; train_seasons: [2018]) 
+... done in 15.94 s
+## DatasetManager ##: Creating seasonal split (test_season: 2019 with first 100 games as train; train_seasons: [2017, 2018]) 
+... done in 20.75 s
+## DatasetManager ##: Creating seasonal split (test_season: 2019 with first 200 games as train; train_seasons: [2017, 2018]) 
+... done in 20.20 s
+## DatasetManager ##: Creating seasonal split (test_season: 2019 with first 400 games as train; train_seasons: [2017, 2018]) 
+... done in 19.52 s
+## DatasetManager ##: Creating seasonal split (test_season: 2019 with first 800 games as train; train_seasons: [2017, 2018]) 
+... done in 18.13 s
+## DatasetManager ##: Creating seasonal split (test_season: 2019 with first 100 games as train; train_seasons: [2016, 2017, 2018]) 
+... done in 21.38 s
+## DatasetManager ##: Creating seasonal split (test_season: 2019 with first 200 games as train; train_seasons: [2016, 2017, 2018]) 
+... done in 20.76 s
+## DatasetManager ##: Creating seasonal split (test_season: 2019 with first 400 games as train; train_seasons: [2016, 2017, 2018]) 
+... done in 19.84 s
+## DatasetManager ##: Creating seasonal split (test_season: 2019 with first 800 games as train; train_seasons: [2016, 2017, 2018]) 
+... done in 18.05 s
+## Grid Search CV ##: Random Forest (Seasonal)
+'test_season': 2017; 'first_n_games_to_train': 100; 'trian_seasons': [2016] ---> train: 99.92%; test: 61.66%
+------------------------- done in 21.32 s -------------------------
+'test_season': 2017; 'first_n_games_to_train': 200; 'trian_seasons': [2016] ---> train: 99.93%; test: 65.08%
+------------------------- done in 25.22 s -------------------------
+'test_season': 2017; 'first_n_games_to_train': 400; 'trian_seasons': [2016] ---> train: 100.00%; test: 68.08%
+------------------------- done in 29.91 s -------------------------
+'test_season': 2017; 'first_n_games_to_train': 800; 'trian_seasons': [2016] ---> train: 99.95%; test: 75.80%
+------------------------- done in 41.25 s -------------------------
+'test_season': 2018; 'first_n_games_to_train': 100; 'trian_seasons': [2017] ---> train: 100.00%; test: 64.22%
+------------------------- done in 23.00 s -------------------------
+'test_season': 2018; 'first_n_games_to_train': 200; 'trian_seasons': [2017] ---> train: 100.00%; test: 65.36%
+------------------------- done in 26.76 s -------------------------
+'test_season': 2018; 'first_n_games_to_train': 400; 'trian_seasons': [2017] ---> train: 99.94%; test: 68.43%
+------------------------- done in 33.96 s -------------------------
+'test_season': 2018; 'first_n_games_to_train': 800; 'trian_seasons': [2017] ---> train: 100.00%; test: 73.04%
+------------------------- done in 47.89 s -------------------------
+'test_season': 2018; 'first_n_games_to_train': 100; 'trian_seasons': [2017, 2016] ---> train: 100.00%; test: 69.43%
+------------------------- done in 65.88 s -------------------------
+'test_season': 2018; 'first_n_games_to_train': 200; 'trian_seasons': [2017, 2016] ---> train: 99.96%; test: 70.21%
+------------------------- done in 68.61 s -------------------------
+'test_season': 2018; 'first_n_games_to_train': 400; 'trian_seasons': [2017, 2016] ---> train: 99.97%; test: 73.59%
+------------------------- done in 80.82 s -------------------------
+'test_season': 2018; 'first_n_games_to_train': 800; 'trian_seasons': [2017, 2016] ---> train: 100.00%; test: 81.32%
+------------------------- done in 108.38 s -------------------------
+'test_season': 2019; 'first_n_games_to_train': 100; 'trian_seasons': [2018] ---> train: 99.93%; test: 61.30%
+------------------------- done in 23.35 s -------------------------
+'test_season': 2019; 'first_n_games_to_train': 200; 'trian_seasons': [2018] ---> train: 99.93%; test: 65.53%
+------------------------- done in 26.53 s -------------------------
+'test_season': 2019; 'first_n_games_to_train': 400; 'trian_seasons': [2018] ---> train: 100.00%; test: 69.21%
+------------------------- done in 34.41 s -------------------------
+'test_season': 2019; 'first_n_games_to_train': 800; 'trian_seasons': [2018] ---> train: 99.95%; test: 71.63%
+------------------------- done in 48.17 s -------------------------
+'test_season': 2019; 'first_n_games_to_train': 100; 'trian_seasons': [2018, 2017] ---> train: 100.00%; test: 75.66%
+------------------------- done in 70.63 s -------------------------
+'test_season': 2019; 'first_n_games_to_train': 200; 'trian_seasons': [2018, 2017] ---> train: 99.96%; test: 74.72%
+------------------------- done in 74.74 s -------------------------
+'test_season': 2019; 'first_n_games_to_train': 400; 'trian_seasons': [2018, 2017] ---> train: 99.93%; test: 78.45%
+------------------------- done in 88.89 s -------------------------
+'test_season': 2019; 'first_n_games_to_train': 800; 'trian_seasons': [2018, 2017] ---> train: 100.00%; test: 80.85%
+------------------------- done in 115.15 s -------------------------
+'test_season': 2019; 'first_n_games_to_train': 100; 'trian_seasons': [2018, 2017, 2016] ---> train: 100.00%; test: 79.02%
+------------------------- done in 148.80 s -------------------------
+'test_season': 2019; 'first_n_games_to_train': 200; 'trian_seasons': [2018, 2017, 2016] ---> train: 100.00%; test: 77.66%
+------------------------- done in 153.30 s -------------------------
+'test_season': 2019; 'first_n_games_to_train': 400; 'trian_seasons': [2018, 2017, 2016] ---> train: 99.95%; test: 81.09%
+------------------------- done in 165.64 s -------------------------
+'test_season': 2019; 'first_n_games_to_train': 800; 'trian_seasons': [2018, 2017, 2016] ---> train: 99.98%; test: 83.33%
+------------------------- done in 191.49 s -------------------------
