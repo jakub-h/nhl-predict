@@ -300,14 +300,13 @@ def seasonal_grid_search(clf_param_grid, first_games, nums_of_train_seasons, con
 
 
 if __name__ == "__main__":
-    dm = DatasetManager()
     param_grid = {
         'n_estimators': [50, 200, 400, 600],
-        'max_depth': [20, 300, 500, 700]
+        'max_depth': [100, 300, 500, 700]
     }
     first_games = [0, 100, 200, 300, 400]
     train_seasons_num = [1, 2, 3]
-    confidence_factors = [0.5, 0.7, 0.9]
+    confidence_factors = [0.5, 0.6, 0.7, 0.8]
     seasonal_grid_search(param_grid, first_games, train_seasons_num, confidence_factors)
     
 
