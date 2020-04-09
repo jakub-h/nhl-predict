@@ -208,8 +208,8 @@ def only_sure():
 
 
 def seasonal_crossval(params, first_games, num_of_training_seasons, probs=False):
-    print("## Seasonal CV ##: RandomForest ({})".format(params))
     dm = DatasetManager(base_dataset_fn=None, player_names_fn=None, team_names_fn=None)
+    print("## Seasonal CV ##: RandomForest ({})".format(params))
     y_true = []
     y_pred = []
     test_seasons = [x for x in range(2016, 2020)]
@@ -236,17 +236,16 @@ def seasonal_crossval(params, first_games, num_of_training_seasons, probs=False)
 if __name__ == "__main__":
     params = {
         'criterion': 'entropy',
-        'n_estimators': 20,
-        'max_depth': 50,
+        'n_estimators': 200,
+        'max_depth': 500,
         'max_features': None,
         'min_samples_split': 8,
         'min_samples_leaf': 1,
         'n_jobs': 3
     }
-    y_true, y_pred = seasonal_crossval(params, 100, 2)
+    y_true, y_pred = seasonal_crossval(params, 200, 3)
     acc = []
     prec = []
-    result_mapping = {-1:'away', 0: 'draw', 1:'home'}
     for y_t, y_p in zip(y_true, y_pred):
         acc.append(accuracy_score(y_t, y_p))
         prec.append(precision_score(y_t, y_p, average='weighted'))
@@ -254,3 +253,7 @@ if __name__ == "__main__":
     prec_m, prec_ci = mean_confidence_interval(prec)
     print("--> accuracy: {:.2f}% +-{:.2f}%".format(acc_m*100, acc_ci*100))
     print("--> precision: {:.2f}% +-{:.2f}%".format(prec_m*100, prec_ci*100))
+    y_true = pd.concat(y_true)
+    y_pred = pd.concat(y_pred)
+    print("OVERALL:")
+    print(classification_report(y_true, y_pred, target_names=['away', 'draw', 'home']))
