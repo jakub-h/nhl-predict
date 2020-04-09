@@ -13,6 +13,7 @@ from sklearn.model_selection import GridSearchCV, ParameterGrid
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score
 import colorlover as cl
 import time
+import json
 
 
 
@@ -139,41 +140,7 @@ def rf_grid_search_CV(dm, param_grid):
             print("train: {:.2f}% +-{:.2f}%; test: {:.2f}% +-{:.2f}%".format(m_train, ci_train, m_test, ci_test))
             print(25*"-", "done in {:.2f} s".format(end-start), 25*"-")
     results = pd.DataFrame.from_dict(results)
-    results.to_csv("results/random_forest_gridsearch_2.csv")
-
-
-def seasonal_grid_search(dm, params):
-    print("## Grid Search CV ##: Random Forest (Seasonal)")
-    results = {
-        'test_season': [],
-        'first_games': [],
-        'train_seasons': [],
-        'acc_train': [],
-        'acc_test': []
-    }
-    for test_season in [2017, 2018, 2019]:
-        for train_num in range(1, test_season-2015):
-            train_seasons = []
-            for i_train in range(train_num):
-                train_seasons.append(test_season-1-i_train)
-            for first_games in [100, 200, 400, 800]:
-                print("'test_season': {}; 'first_n_games_to_train': {}; 'trian_seasons': {} ---> ".format(
-                    test_season, first_games, train_seasons), end='', flush=True)
-                x_train, x_test, y_train, y_test = dm.get_seasonal_split(test_season, first_games, train_seasons)
-                start = time.time()
-                clf = RandomForestClassifier(**params).fit(x_train, y_train)
-                results['test_season'].append(test_season)
-                results['first_games'].append(first_games)
-                results['train_seasons'].append(train_seasons)
-                acc_train = clf.score(x_train, y_train)*100
-                acc_test = clf.score(x_test, y_test)*100
-                results['acc_train'].append(acc_train)
-                results['acc_test'].append(acc_test)
-                end = time.time()
-                print("train: {:.2f}%; test: {:.2f}%".format(acc_train, acc_test))
-                print(25*"-", "done in {:.2f} s".format(end-start), 25*"-")
-    results = pd.DataFrame.from_dict(results)
-    results.to_csv("results/rf_seasonal_gs.csv")
+    results.to_csv("results/random_forest_gridsearch_2.csv")  
 
 
 
@@ -207,53 +174,140 @@ def only_sure():
 
 
 
-def seasonal_crossval(params, first_games, num_of_training_seasons, probs=False):
+def seasonal_crossval(params, first_games, num_of_training_seasons):
     dm = DatasetManager(base_dataset_fn=None, player_names_fn=None, team_names_fn=None)
     print("## Seasonal CV ##: RandomForest ({})".format(params))
     y_true = []
     y_pred = []
+    y_probs = []
     test_seasons = [x for x in range(2016, 2020)]
-    if num_of_training_seasons == 2:
+    if num_of_training_seasons < 3:
         test_seasons.append(2015)
+    if num_of_training_seasons < 2:
+        test_seasons.append(2014)
     for test_season in sorted(test_seasons):
         train_seasons = sorted([test_season-1-x for x in range(num_of_training_seasons)])
         print("test season: {} (first {} games to train); train seasons: {} ---> ".format(test_season, first_games, train_seasons), end='', flush=True)
         start = time.time()
         x_train, x_test, y_train, y_test = dm.get_seasonal_split(test_season, first_games, train_seasons)
-        clf = RandomForestClassifier(**params).fit(x_train, y_train)
+        clf = RandomForestClassifier(**params,
+                                     n_jobs=20, criterion='entropy', min_samples_leaf=1,
+                                     min_samples_split=8, max_features=None).fit(x_train, y_train)
         end = time.time()
         y_true.append(y_test.rename('true'))
-        if probs:
-            y_pred.append(pd.DataFrame(clf.predict_proba(x_test), index=y_test.index, columns=['away', 'draw', 'home']))
-        else:
-            y_pred.append(pd.Series(clf.predict(x_test), index=y_test.index, name='pred'))
+        y_probs.append(pd.DataFrame(clf.predict_proba(x_test), index=y_test.index, columns=['away', 'draw', 'home']))
+        y_pred.append(pd.Series(clf.predict(x_test), index=y_test.index, name='pred'))
         print('done in {:.2f} s'.format(end - start))
-    return(y_true, y_pred)
+    return y_true, y_pred, y_probs
 
+
+def seasonal_grid_search(clf_param_grid, first_games, nums_of_train_seasons, conf_factors):
+    print("## Grid Search CV ##: Random Forest (Seasonal)")
+    results = {
+        'n_estimators': [],
+        'max_depth': [],
+        'first_games': [],
+        'num_train_seasons': [],
+        'cv_acc_mean': [],
+        'cv_acc_ci': [],
+        'cv_prec_mean': [],
+        'cv_prec_ci': [],
+        'away_precision': [],
+        'away_recall': [],
+        'away_support': [],
+        'draw_precision': [],
+        'draw_recall': [],
+        'draw_support': [],
+        'home_precision': [],
+        'home_recall': [],
+        'home_support': [],
+        'ovr_acc': [],
+        'confidence_factor': [],
+        'sure_away_precision': [],
+        'sure_away_recall': [],
+        'sure_away_support': [],
+        'sure_draw_precision': [],
+        'sure_draw_recall': [],
+        'sure_draw_support': [],
+        'sure_home_precision': [],
+        'sure_home_recall': [],
+        'sure_home_support': [],
+        'sure_ovr_acc': [],
+        'train_time': [],
+    }
+    for params in ParameterGrid(clf_param_grid):
+        for n_games in first_games:
+            for n_seasons in nums_of_train_seasons:
+                for param_name in params.keys():
+                    for _ in range(len(conf_factors)):
+                        results[param_name].append(params[param_name])
+                for _ in range(len(conf_factors)):
+                    results['first_games'].append(n_games)
+                    results['num_train_seasons'].append(n_seasons)
+                # Get predictions
+                start = time.time()
+                y_true, y_pred, y_probs = seasonal_crossval(params, n_games, n_seasons)
+                end = time.time()
+                for _ in range(len(conf_factors)):
+                    results['train_time'].append(end - start)
+                # Cross validation estimations (seasons separately -> mean + confidence intervals)
+                acc = []
+                prec = []
+                for y_t, y_p in zip(y_true, y_pred):
+                    acc.append(accuracy_score(y_t, y_p))
+                    prec.append(precision_score(y_t, y_p, average='weighted'))
+                acc_m, acc_ci = mean_confidence_interval(acc)
+                prec_m, prec_ci = mean_confidence_interval(prec)
+                for _ in range(len(conf_factors)):
+                    results['cv_acc_mean'].append(acc_m)
+                    results['cv_acc_ci'].append(acc_ci)
+                    results['cv_prec_mean'].append(prec_m)
+                    results['cv_prec_ci'].append(prec_ci)
+                # Overall performance (without filtering unsure predictions)
+                class_names = ['away', 'draw', 'home']
+                y_true = pd.concat(y_true)
+                y_pred = pd.concat(y_pred)
+                cl_rep = classification_report(y_true, y_pred, target_names=class_names, output_dict=True)
+                for _ in range(len(conf_factors)):
+                    results['ovr_acc'].append(cl_rep['accuracy'])
+                for cl in ['away', 'draw', 'home']:
+                    for met in ['precision', 'recall', 'support']:
+                        for _ in range(len(conf_factors)):
+                            results['{}_{}'.format(cl, met)].append(cl_rep[cl][met])
+                # Filtering unsure predictions
+                y_probs = pd.concat(y_probs)
+                for conf_fac in conf_factors:
+                    results['confidence_factor'].append(conf_fac)
+                    y_sure = []
+                    for _, row in y_probs.iterrows():
+                        if sorted(row, reverse=True)[0] > conf_fac:
+                            y_sure.append(True)
+                        else:
+                            y_sure.append(False)
+                    y_sure = pd.Series(y_sure, index=y_true.index)
+                    y_true_sure = y_true.loc[y_sure == True]
+                    y_pred_sure = y_pred.loc[y_sure == True]
+                    cl_rep_sure = classification_report(y_true_sure, y_pred_sure, target_names=class_names, output_dict=True)
+                    results['sure_ovr_acc'].append(cl_rep_sure['accuracy'])
+                    for cl in ['away', 'draw', 'home']:
+                        for met in ['precision', 'recall', 'support']:
+                            results['sure_{}_{}'.format(cl, met)].append(cl_rep_sure[cl][met])
+                with open('results/seasonal_gridsearch_backup.json', 'w') as f:
+                    json.dump(results, f)
+    results = pd.DataFrame.from_dict(results)
+    results.to_csv("results/seasonal_gridsearch.csv")  
 
 
 
 if __name__ == "__main__":
-    params = {
-        'criterion': 'entropy',
-        'n_estimators': 200,
-        'max_depth': 500,
-        'max_features': None,
-        'min_samples_split': 8,
-        'min_samples_leaf': 1,
-        'n_jobs': 3
+    dm = DatasetManager()
+    param_grid = {
+        'n_estimators': [50, 200, 400, 600],
+        'max_depth': [20, 300, 500, 700]
     }
-    y_true, y_pred = seasonal_crossval(params, 200, 3)
-    acc = []
-    prec = []
-    for y_t, y_p in zip(y_true, y_pred):
-        acc.append(accuracy_score(y_t, y_p))
-        prec.append(precision_score(y_t, y_p, average='weighted'))
-    acc_m, acc_ci = mean_confidence_interval(acc)
-    prec_m, prec_ci = mean_confidence_interval(prec)
-    print("--> accuracy: {:.2f}% +-{:.2f}%".format(acc_m*100, acc_ci*100))
-    print("--> precision: {:.2f}% +-{:.2f}%".format(prec_m*100, prec_ci*100))
-    y_true = pd.concat(y_true)
-    y_pred = pd.concat(y_pred)
-    print("OVERALL:")
-    print(classification_report(y_true, y_pred, target_names=['away', 'draw', 'home']))
+    first_games = [0, 100, 200, 300, 400]
+    train_seasons_num = [1, 2, 3]
+    confidence_factors = [0.5, 0.7, 0.9]
+    seasonal_grid_search(param_grid, first_games, train_seasons_num, confidence_factors)
+    
+
