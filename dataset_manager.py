@@ -11,9 +11,9 @@ BYTES_TO_MB_DIV = 0.000001
 
 class DatasetManager():
     def __init__(self, base_url="https://statsapi.web.nhl.com/api/v1/",
-                 player_names_fn="player_names.json",
-                 team_names_fn="team_names.json",
-                 games_hr_fn="human_readable.csv"):
+                 player_names_fn="player_names_big.json",
+                 team_names_fn="team_names_big.json",
+                 base_dataset_fn="base_dataset_big.csv"):
         print("## DatasetManager ##: Initialization")
         # Base URL for NHL API
         self._base_url = base_url
@@ -34,22 +34,15 @@ class DatasetManager():
         else:
             self._team_names = None
 
-        # human readable dataset (full dataset, with team names, not standardized etc.)
-        if games_hr_fn is not None and games_hr_fn in os.listdir("./"):
-            self._games_hr = pd.read_csv(games_hr_fn, header=0, index_col=0)
-            print("--> HR dataset loaded from: {}".format(games_hr_fn))
+        # Base dataset (full dataset, with team names, not standardized etc.)
+        if base_dataset_fn is not None and base_dataset_fn in os.listdir("./"):
+            self._base_dataset = pd.read_csv(base_dataset_fn, header=0, index_col=0)
+            print("--> Base dataset loaded from: {}".format(base_dataset_fn))
         else:
-            self._games_hr = None
+            self._base_dataset = None
         
-        self._team_encoder = None
         self._coach_encoder = None
         self._scaler = None
-
-        self._games_ml = None    # for ML purposes (one-hot encoding, sparse matrix, standardized, ...)
-            
-
-    def get_hr_table(self):
-        return self._games_hr 
 
 
     def _seek_game(self, season_year, game_num, preseason=False):
@@ -65,7 +58,7 @@ class DatasetManager():
         parsed_game = {}
         if 'gamePk' not in game_dict.keys():
             return None
-        if game_dict['gameData']['status']['abstractgameState'] != "Final":
+        if game_dict['gameData']['status']['abstractGameState'] != "Final":
             return None
         parsed_game['game_id'] = game_dict['gamePk']
         timestamp = time.strptime(game_dict['gameData']['datetime']['dateTime'], "%Y-%m-%dT%H:%M:%SZ")
@@ -115,7 +108,7 @@ class DatasetManager():
         print("] done in {:.2f} s".format(end - start))
 
 
-    def create_player_names_dict(self):
+    def create_player_names_dict(self, filename='player_names.json'):
         print("## DatasetManager ##: Creating players 'IDs <-> NAMES' dictionary")
         player_names = {'id_to_name': {}, 'name_to_id': {}}
         for season in os.listdir("games"):
@@ -133,11 +126,11 @@ class DatasetManager():
             print("done in {:.2f} s".format(end - start))
         for player_id, player_name in player_names['id_to_name'].items():
             player_names['name_to_id'][player_name] = player_id
-        with open("player_names.json", 'w', encoding="utf-8") as f:
+        with open(filename, 'w', encoding="utf-8") as f:
             json.dump(player_names, f, ensure_ascii=False, indent=4)
 
 
-    def create_team_names_dict(self):
+    def create_team_names_dict(self, filename='team_names.json'):
         print("## DatasetManager ##: Creating teams 'IDs <-> NAMES' dictionary")
         team_names = {'id_to_name': {}, 'name_to_id': {}}
         for season in os.listdir("games"):
@@ -151,31 +144,29 @@ class DatasetManager():
                     team_names['id_to_name'][team_id] = team_name
                     team_names['name_to_id'][team_name] = team_id
             print("done")
-        with open("team_names.json", 'w') as f:
+        with open(filename, 'w') as f:
             json.dump(team_names, f, indent=4)
 
 
-    def _print_hr_memory_usage(self):
-        if self._games_hr is None:
-            print("Human Readable dataset has not been created yet (is None).")
+    def _print_base_dataset_memory_usage(self):
+        if self._base_dataset is None:
+            print("Base dataset has not been created yet (is None).")
         else:
-            print("Human Readable dataset has: {:.2f} MB".format(self._games_hr.memory_usage().sum() * BYTES_TO_MB_DIV))
+            print("Base dataset has: {:.2f} MB".format(self._base_dataset.memory_usage().sum() * BYTES_TO_MB_DIV))
 
 
-    def create_hr_table(self):
-        print("## DatasetManager ##: Creating HR dataset")
+    def create_base_dataset(self, filename="base_dataset.csv"):
+        print("## DatasetManager ##: Creating Base dataset")
         print("schema ... ", end="", flush=True)
         start = time.time()
         # construct columns list
         columns = ['year', 'month', 'day', 'hour', 'home_team_name', 'away_team_name',
                    'home_goals', 'away_goals', 'reg_draw', 'home_coach', 'away_coach']
-        with open("player_names.json", 'r') as f:
-            names_dict = json.load(f)
-        for player_id in names_dict['id_to_name'].keys():
+        for player_id in self._player_names['id_to_name'].keys():
             for h_a in ['home', 'away']:
                 columns.append("{}_{}".format(player_id, h_a))
         # create DataFrame
-        self._games_hr = pd.DataFrame(columns=columns)
+        self._base_dataset = pd.DataFrame(columns=columns)
         end = time.time()
         print("done in {:.1f} s".format(end - start))
         # insert values
@@ -201,32 +192,20 @@ class DatasetManager():
                         game_array.append(0)
                 season_table.append(game_array)
             season_df = pd.DataFrame(season_table, columns=columns, index=indices)
-            self._games_hr = pd.concat([self._games_hr, season_df])
+            self._base_dataset = pd.concat([self._base_dataset, season_df])
             end = time.time()
             print("done in {:.1f} s".format(end - start))
-        self._print_hr_memory_usage()
-
-    
-    def hr_to_csv(self, filename="human_readable.csv"):
-        if self._games_hr is None:
-            print("Human Readable dataset has not been created yet (is None).")
-        else:
-            self._games_hr.to_csv(filename)
-
-    
-    def load_hr_from_csv(self, filename="human_readable.csv"):
-        print("## DatasetManager ##: Loading HR dataset from csv ... ", end="", flush=True)
-        self._games_hr = pd.read_csv(filename, header=0, index_col=0)
-        print("done")   
+        self._print_base_dataset_memory_usage()
+        self._base_dataset.to_csv(filename)  
 
 
     def create_k_folds(self, k, dummy_teams=False, dummy_coaches=False, scale=None):
         print("## DatasetManager ##: Creating {}-folds (dummy_teams={}, dummy_coaches={}, scale={})".format(k, dummy_teams, dummy_coaches, scale))
-        if self._games_hr is None:
+        if self._base_dataset is None:
             print("You must load or create human readable dataset first!")
             return
         # shuffle indices and create folds: (train, test) pairs k-times
-        indices = self._games_hr.index.to_list()
+        indices = self._base_dataset.index.to_list()
         np.random.shuffle(indices)
         folds_ind = np.array_split(indices, k)
         for fold_i in range(k):
@@ -241,7 +220,7 @@ class DatasetManager():
             train_ind = np.array(train_ind)
 
             # TRAIN DATASET
-            train = self._games_hr.copy().loc[train_ind]
+            train = self._base_dataset.copy().loc[train_ind]
             # GOALS -> result (1: home win, 0: regulation draw, -1:away win)
             train['result'] = 1 - train['reg_draw']
             goal_diff = train.loc[train['result'] == 1, 'home_goals'] - train.loc[train['result'] == 1, 'away_goals']
@@ -305,7 +284,7 @@ class DatasetManager():
             train.to_csv("folds/train_{}.csv".format(out_fn))
 
             # TEST DATASET
-            test = self._games_hr.copy().loc[test_ind]
+            test = self._base_dataset.copy().loc[test_ind]
             # GOALS -> result (1: home win, 0: regulation draw, -1: away win)
             test['result'] = 1 - test['reg_draw']
             goal_diff = test.loc[test['result'] == 1, 'home_goals'] - test.loc[test['result'] == 1, 'away_goals']
@@ -352,16 +331,16 @@ class DatasetManager():
             print("done in {:.2f} s".format(end - start))
 
 
-    def create_seasonal_split(self, test_season=2019, first_games_to_train=100, train_seasons=[2016, 2017, 2018]):
+    def create_seasonal_split(self, test_season=2019, first_games_to_train=200, train_seasons=[2016, 2017, 2018]):
         print("## DatasetManager ##: Creating seasonal split (test_season: {} with first {} games as train; train_seasons: {}) ".format(
                     test_season, first_games_to_train, sorted(train_seasons)))
-        if self._games_hr is None:
+        if self._base_dataset is None:
             print("You must load or create human readable dataset first!")
             return
 
         print("... ", end='', flush=True)
         start = time.time()
-        indices = self._games_hr.index
+        indices = self._base_dataset.index
         train_ind = []
         test_ind = []
         for index in indices:
@@ -378,7 +357,7 @@ class DatasetManager():
         test_ind = np.array(test_ind)
 
         # TRAIN DATASET
-        train = self._games_hr.copy().loc[train_ind]
+        train = self._base_dataset.copy().loc[train_ind]
         # GOALS -> result (1: home win, 0: regulation draw, -1:away win)
         train['result'] = 1 - train['reg_draw']
         goal_diff = train.loc[train['result'] == 1, 'home_goals'] - train.loc[train['result'] == 1, 'away_goals']
@@ -386,10 +365,8 @@ class DatasetManager():
         train.drop(columns=['home_goals', 'away_goals', 'reg_draw'], inplace=True)
         # TEAMS
         train.rename(columns={"home_team_name": "home_team", "away_team_name": "away_team"}, inplace=True)
-        self._team_encoder = LabelEncoder()
-        self._team_encoder.fit(sorted(train['home_team']))
-        train['home_team'] = self._team_encoder.transform(train['home_team'])
-        train['away_team'] = self._team_encoder.transform(train['away_team'])
+        train['home_team'] = train['home_team'].map(self._team_names['name_to_id'])
+        train['away_team'] = train['away_team'].map(self._team_names['name_to_id'])
         # COACHES
         # merge all coaches with 20 or less games to 'other' value
         coach_counts = train['home_coach'].value_counts() + train['away_coach'].value_counts()
@@ -397,7 +374,8 @@ class DatasetManager():
         train['away_coach'] = train['away_coach'].apply(lambda coach_name: coach_name if coach_counts[coach_name] > 20 else "other")
         # encoding
         self._coach_encoder = LabelEncoder()
-        self._coach_encoder.fit(np.concatenate([train['home_coach'], train['away_coach']]))
+        all_coaches = np.concatenate([train['home_coach'], train['away_coach']])
+        self._coach_encoder.fit(np.append(all_coaches, 'other'))
         train['home_coach'] = self._coach_encoder.transform(train['home_coach'])
         train['away_coach'] = self._coach_encoder.transform(train['away_coach'])
         # PLAYERS
@@ -419,7 +397,7 @@ class DatasetManager():
         train.to_csv("seasonal_splits/train_{}.csv".format(out_fn))
 
         # TEST DATASET
-        test = self._games_hr.copy().loc[test_ind]
+        test = self._base_dataset.copy().loc[test_ind]
         # GOALS -> result (1: home win, 0: regulation draw, -1: away win)
         test['result'] = 1 - test['reg_draw']
         goal_diff = test.loc[test['result'] == 1, 'home_goals'] - test.loc[test['result'] == 1, 'away_goals']
@@ -427,8 +405,8 @@ class DatasetManager():
         test.drop(columns=['home_goals', 'away_goals', 'reg_draw'], inplace=True)
         # TEAMS
         test.rename(columns={"home_team_name": "home_team", "away_team_name": "away_team"}, inplace=True)
-        test['home_team'] = self._team_encoder.transform(test['home_team'])
-        test['away_team'] = self._team_encoder.transform(test['away_team'])
+        test['home_team'] = test['home_team'].map(self._team_names['name_to_id'])
+        test['away_team'] = test['away_team'].map(self._team_names['name_to_id'])
         # COACHES
         # mark all coaches not presented in train's schema as 'other'
         test['home_coach'] = test['home_coach'].apply(lambda coach_name: coach_name if coach_name in self._coach_encoder.classes_ else "other")
