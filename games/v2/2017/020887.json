@@ -1,0 +1,174 @@
+{
+    "game_id": 2017020887,
+    "year": 2018,
+    "month": 2,
+    "day": 16,
+    "hour": 2,
+    "reg_draw": 0,
+    "home_team_id": 53,
+    "home_team": "ARI",
+    "home_goals": 5,
+    "home_coach": "Rick Tocchet",
+    "away_team_id": 8,
+    "away_team": "MTL",
+    "away_goals": 2,
+    "away_coach": "Claude Julien",
+    "players": {
+        "home": {
+            "8477293": {
+                "icetime": 3600,
+                "position": "G"
+            },
+            "8471769": {
+                "icetime": 1279,
+                "position": "D"
+            },
+            "8479345": {
+                "icetime": 1096,
+                "position": "D"
+            },
+            "8476356": {
+                "icetime": 874,
+                "position": "R"
+            },
+            "8479343": {
+                "icetime": 947,
+                "position": "C"
+            },
+            "8477943": {
+                "icetime": 888,
+                "position": "L"
+            },
+            "8470755": {
+                "icetime": 1047,
+                "position": "C"
+            },
+            "8477503": {
+                "icetime": 875,
+                "position": "L"
+            },
+            "8477989": {
+                "icetime": 808,
+                "position": "C"
+            },
+            "8474613": {
+                "icetime": 938,
+                "position": "C"
+            },
+            "8475171": {
+                "icetime": 1210,
+                "position": "D"
+            },
+            "8476393": {
+                "icetime": 933,
+                "position": "C"
+            },
+            "8471274": {
+                "icetime": 1404,
+                "position": "D"
+            },
+            "8474736": {
+                "icetime": 813,
+                "position": "C"
+            },
+            "8478432": {
+                "icetime": 838,
+                "position": "R"
+            },
+            "8475246": {
+                "icetime": 1069,
+                "position": "D"
+            },
+            "8476326": {
+                "icetime": 612,
+                "position": "R"
+            },
+            "8476921": {
+                "icetime": 1067,
+                "position": "L"
+            },
+            "8474218": {
+                "icetime": 1045,
+                "position": "D"
+            }
+        },
+        "away": {
+            "8471679": {
+                "icetime": 3600,
+                "position": "G"
+            },
+            "8474818": {
+                "icetime": 1038,
+                "position": "D"
+            },
+            "8475848": {
+                "icetime": 1021,
+                "position": "R"
+            },
+            "8469521": {
+                "icetime": 912,
+                "position": "C"
+            },
+            "8473673": {
+                "icetime": 1006,
+                "position": "D"
+            },
+            "8473991": {
+                "icetime": 1147,
+                "position": "D"
+            },
+            "8477455": {
+                "icetime": 786,
+                "position": "L"
+            },
+            "8473507": {
+                "icetime": 1502,
+                "position": "D"
+            },
+            "8476851": {
+                "icetime": 993,
+                "position": "L"
+            },
+            "8477957": {
+                "icetime": 914,
+                "position": "R"
+            },
+            "8474038": {
+                "icetime": 922,
+                "position": "L"
+            },
+            "8477901": {
+                "icetime": 748,
+                "position": "L"
+            },
+            "8476476": {
+                "icetime": 1160,
+                "position": "D"
+            },
+            "8476400": {
+                "icetime": 822,
+                "position": "R"
+            },
+            "8479376": {
+                "icetime": 1195,
+                "position": "D"
+            },
+            "8476948": {
+                "icetime": 861,
+                "position": "L"
+            },
+            "8477476": {
+                "icetime": 953,
+                "position": "L"
+            },
+            "8474157": {
+                "icetime": 962,
+                "position": "L"
+            },
+            "8477494": {
+                "icetime": 898,
+                "position": "C"
+            }
+        }
+    }
+}
