@@ -294,12 +294,69 @@ def seasonal_grid_search(clf_param_grid, first_games, nums_of_train_seasons, con
                             results['sure_{}_{}'.format(cl, met)].append(cl_rep_sure[cl][met])
                 with open('results/seasonal_gridsearch_backup.json', 'w') as f:
                     json.dump(results, f)
-    results = pd.DataFrame.from_dict(results)
+    results = pd.DataFrame.from_dict(results) 
     results.to_csv("results/seasonal_gridsearch.csv")  
 
 
 
 if __name__ == "__main__":
+    dm = DatasetManager()
+    x_train, x_test, y_train, y_test = dm.get_seasonal_split(2018, 200, [2017, 2016], mean_icetime=False)
+
+    clf = RandomForestClassifier(n_estimators=400, criterion='entropy', max_depth=200, min_samples_split=8,
+                                 max_features=None, n_jobs=3, verbose=1).fit(x_train, y_train)
+    print(classification_report(y_test, clf.predict(x_test), target_names=['away', 'draw', 'home']))
+    
+    feature_names = []
+    for col in x_test.columns:
+        if (col.endswith("_home") or col.endswith("_away")) and not col.startswith("other_"):
+            player_id, h_a = col.split("_")
+            feature_names.append("{}_{}".format(dm._player_names['id_to_name'][player_id], h_a))
+        else:
+            feature_names.append(col)
+    feature_names = np.array(feature_names)
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=sorted(clf.feature_importances_),
+            y=feature_names[np.argsort(clf.feature_importances_)],
+            orientation='h'
+        )
+    )
+    fig.update_layout(
+        title="without avg icetime"
+    )
+    fig.show()
+
+    x_train_mean, x_test_mean, y_train_mean, y_test_mean = dm.get_seasonal_split(2018, 200, [2017, 2016], mean_icetime=True)
+    clf = RandomForestClassifier(n_estimators=400, criterion='entropy', max_depth=200, min_samples_split=8,
+                                 max_features=None, n_jobs=3, verbose=1).fit(x_train_mean, y_train_mean)
+    print(classification_report(y_test_mean, clf.predict(x_test_mean), target_names=['away', 'draw', 'home']))
+    
+    feature_names = []
+    for col in x_test_mean.columns:
+        if (col.endswith("_home") or col.endswith("_away")) and not col.startswith("other_"):
+            player_id, h_a = col.split("_")
+            feature_names.append("{}_{}".format(dm._player_names['id_to_name'][player_id], h_a))
+        else:
+            feature_names.append(col)
+    feature_names = np.array(feature_names)
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=sorted(clf.feature_importances_),
+            y=feature_names[np.argsort(clf.feature_importances_)],
+            orientation='h'
+        )
+    )
+    fig.update_layout(
+        title="with avg icetime"
+    )
+    fig.show()
+
+    '''
     param_grid = {
         'n_estimators': [50, 200, 400, 600],
         'max_depth': [100, 300, 500, 700]
@@ -308,5 +365,6 @@ if __name__ == "__main__":
     train_seasons_num = [1, 2, 3]
     confidence_factors = [0.5, 0.6, 0.7, 0.8]
     seasonal_grid_search(param_grid, first_games, train_seasons_num, confidence_factors)
+    '''
     
 

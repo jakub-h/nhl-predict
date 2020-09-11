@@ -1,0 +1,7 @@
+## DatasetManager ##: Initialization
+## Seasonal CV ##: RandomForest (probs=True; {'criterion': 'entropy', 'n_estimators': 200, 'max_depth': 500, 'max_features': None, 'min_samples_split': 8, 'min_samples_leaf': 1, 'n_jobs': 3})
+test season: 2015 (first 200 games to train); train seasons: [2013, 2014] ---> done in 129.46 s
+test season: 2016 (first 200 games to train); train seasons: [2014, 2015] ---> done in 135.97 s
+test season: 2017 (first 200 games to train); train seasons: [2015, 2016] ---> done in 147.18 s
+test season: 2018 (first 200 games to train); train seasons: [2016, 2017] ---> done in 155.55 s
+test season: 2019 (first 200 games to train); train seasons: [2017, 2018] ---> done in 166.69 s
