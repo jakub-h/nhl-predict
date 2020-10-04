@@ -30,7 +30,7 @@ def seasonal_crossval(params, first_games, num_of_training_seasons, form_length,
     y_true = []
     y_pred = []
     y_probs = []
-    for test_season in range(2015, 2020):
+    for test_season in range(2017, 2020):
         print("test season: {} (first {} games to train); train seasons: {} ---> ".format(test_season, first_games, num_of_training_seasons), end='', flush=True)
         start = time.time()
         x_train, x_test, y_train, y_test = dm.get_seasonal_split(test_season, first_games, num_of_training_seasons, form_length, dummy, home_rel, minmax)
@@ -93,8 +93,8 @@ def seasonal_grid_search(clf_param_grid, first_games, conf_factors, form_lengths
         for n_games in first_games:
             for class_weights in [False]:
                 for form_length in form_lengths:
-                    for dummy in [True, False]:
-                        for home_rel in [True, False]:
+                    for dummy in [False]:
+                        for home_rel in [False]:
                             for minmax in [False]:
                                 for param_name in params.keys():
                                     for _ in range(len(conf_factors)):
@@ -108,7 +108,7 @@ def seasonal_grid_search(clf_param_grid, first_games, conf_factors, form_lengths
                                     results['minmax'].append(minmax)
                                 # Get predictions
                                 start = time.time()
-                                y_true, y_pred, y_probs = seasonal_crossval(params, n_games, 2, form_length, dummy, home_rel, minmax, 3, class_weights)
+                                y_true, y_pred, y_probs = seasonal_crossval(params, n_games, 2, form_length, dummy, home_rel, minmax, -1, class_weights)
                                 end = time.time()
                                 for _ in range(len(conf_factors)):
                                     results['train_time'].append(end - start)
@@ -162,21 +162,24 @@ def seasonal_grid_search(clf_param_grid, first_games, conf_factors, form_lengths
                                                 results['sure_{}_{}'.format(cl, met)].append(cl_rep_sure[cl][met])
                                             else:
                                                 results['sure_{}_{}'.format(cl, met)].append(0)
-                                with open('results/v3/rf_seasonal_gridsearch_backup.json', 'w') as f:
+                                with open('results/v3/rf_seasonal_gridsearch_backup_2.json', 'w') as f:
                                     json.dump(results, f, indent=4)
     results = pd.DataFrame.from_dict(results) 
-    results.to_csv("results/v3/rf_seasonal_gridsearch.csv")
+    results.to_csv("results/v3/rf_seasonal_gridsearch_2.csv")
 
 
 
 if __name__ == "__main__":
     params = {
-        'n_estimators': 500,
+        'n_estimators': 1000,
         'criterion': 'entropy',
         'max_depth': None,
-        'min_samples_split': 10,
+        'min_samples_leaf': 8,
     }
-    y_true, y_pred, y_probs = seasonal_crossval(params, 0, 2, 5, True, False, False, 3, False)
+    confidence_factor = 0.5
+    y_true, y_pred, y_probs = seasonal_crossval(params, first_games=0, num_of_training_seasons=6, 
+                                                form_length=5, dummy=False, home_rel=False, minmax=False,
+                                                n_jobs=3, use_class_weights=False)
     y_true = pd.concat(y_true)
     y_pred = pd.concat(y_pred)
     y_probs = pd.concat(y_probs)
@@ -184,37 +187,37 @@ if __name__ == "__main__":
     print(y_true.value_counts())
     print(10*"=", 'y_pred', 10*'=')
     print(y_pred.value_counts())
-    print(classification_report(y_true, y_pred, zero_division=0))
+    print(classification_report(y_true, y_pred, zero_division=0, digits=4))
     y_sure = []
     for _, row in y_probs.iterrows():
-        if sorted(row)[-1] > 0.50:
+        if sorted(row)[-1] > confidence_factor:
             y_sure.append(True)
         else:
             y_sure.append(False)
     y_sure = pd.Series(y_sure, index=y_true.index)
     y_true_sure = y_true.loc[y_sure == True]
     y_pred_sure = y_pred.loc[y_sure == True]
-    print(10*"=", 'y_true_sure', 10*'=')
+    print(10*"=", 'y_true_sure (conf_f = {:.2f})'.format(confidence_factor), 10*'=')
     print(y_true_sure.value_counts())
-    print(10*"=", 'y_pred_sure', 10*'=')
+    print(10*"=", 'y_pred_sure (conf_f = {:.2f})'.format(confidence_factor), 10*'=')
     print(y_pred_sure.value_counts())
-    print(classification_report(y_true_sure, y_pred_sure, zero_division=0))
+    print(classification_report(y_true_sure, y_pred_sure, zero_division=0, digits=4))
     
     
     
     
-    '''       
+    '''      
     param_grid = {
-        'n_estimators': [50, 200],
-        'max_depth': [50, 300, None],
-        'min_samples_leaf': [1, 5, 10],
+        'n_estimators': [50],
+        'max_depth': [10, 50, 300, None],
+        'min_samples_leaf': [1, 5, 10, 20],
         'min_samples_split': [2, 5, 10],
-        'max_features': ['sqrt', None],
-        'criterion': ['gini', 'entropy']
+        'max_features': ['sqrt'],
+        'criterion': ['entropy']
     }
-    first_games = [0]
-    confidence_factors = [0.5, 0.65]
-    form_lengths = [5]
+    first_games = [0, 100, 300]
+    confidence_factors = [0.5, 0.55, 0.6]
+    form_lengths = [1, 3, 5, 10]
     seasonal_grid_search(param_grid, first_games, confidence_factors, form_lengths)
     '''
 

@@ -15,5 +15,9 @@ def mean_confidence_interval(data, confidence=0.95):
 
 if __name__ == "__main__":
     dm = DatasetManager()
-    for minmax in [True, False]:
-        dm.create_seasonal_split(2019, 0, 6, 5, False, False, minmax)
+    first_games = [0]
+    form_lengths = [5]
+    for test_season in range(2017, 2020):
+        for first_game in first_games:
+            for form_length in form_lengths:
+                dm.create_seasonal_split(test_season, first_game, 4, form_length, False, False, False)
