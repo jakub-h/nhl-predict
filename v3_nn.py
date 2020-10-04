@@ -19,9 +19,9 @@ if __name__ == "__main__":
 
     model = Sequential(name="MLP")
     model.add(Dense(128, activation='relu', input_shape=(scores_train.shape[1],), name="hidden_1"))
-    #model.add(Dropout(rate=0.2, name="dropout_1"))
+    model.add(Dropout(rate=0.2, name="dropout_1"))
     model.add(Dense(64, activation='sigmoid', name="hidden_3"))
-    #model.add(Dropout(rate=0.2, name="dropout_3"))
+    model.add(Dropout(rate=0.2, name="dropout_3"))
     model.add(Dense(3, activation='softmax', name='output'))
     model.build()
 
