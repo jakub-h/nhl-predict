@@ -1,8 +1,2 @@
-__pycache__
-base_dataset*.csv
-human_readable*.csv
-folds/
-seasonal_splits/
-*.pdf
-venv
-.vscode
+# PyCharm
+.idea/
