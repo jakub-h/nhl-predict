@@ -1,23 +1,32 @@
 import time
-from pathlib import Path
+from datetime import datetime
+from typing import Sequence, Tuple
 from urllib.parse import urljoin
 
 import numpy as np
+import pandas as pd
 import selenium.common.exceptions
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from datetime import datetime
-import pandas as pd
 
 
 class OddsScraper:
+    """
+    Class for scraping historical odds of NHL games.
+    """
     def __init__(self,
                  base_url,
                  driver_path):
         self._base_url = base_url
         self._driver_path = driver_path
 
-    def scrape_season(self, season):
+    def scrape_season(self, season: int) -> pd.DataFrame:
+        """
+        Scrapes and parses whole season and returns it in a DataFrame.
+
+        :param season: int - initial year of a season (e.g. 2015 for 2015/2016 season)
+        :return: pd.DataFrame - all regular season games with pregame odds (home "1", draw "X", away "2") and final score.
+        """
         print(f"## OddsScraper: Scraping season {season}-{season+1} ... ", end="", flush=True)
         start = time.time()
         season_url = urljoin(self._base_url, f"nhl-{season}-{season+1}/")
@@ -57,7 +66,13 @@ class OddsScraper:
         return pd.concat(pages).sort_values("date").reset_index(drop=True)
 
     @staticmethod
-    def _parse_page(page_content):
+    def _parse_page(page_content: Sequence[str]) -> pd.DataFrame:
+        """
+        Goes through text content of scraped webpage, parses the results and odds, creates and returns a DataFrame.
+
+        :param page_content: list of rows (strings)
+        :return: pd.DataFrame - parsed games from this page
+        """
         # Define header
         header = ["date", "home", "away", "result", "1", "X", "2"]
         games = []
@@ -135,7 +150,15 @@ class OddsScraper:
         return df
 
     @staticmethod
-    def _parse_teams_row(row_split, standard=True):
+    def _parse_teams_row(row_split: Sequence[str], standard=True) -> Tuple:
+        """
+        Parses row with team names.
+
+        :param row_split: list of words in the row
+        :param standard: whether the row is standard or needs some special treatment (score is missing, has some note
+                         like Winter Classic etc.
+        :return: tuple (home_team_name, away_team_name, result) if standard row, (home_team_name, away_team_name) otherwise.
+        """
         i = row_split.index("-")
         home = row_split[:i]
         away = row_split[i + 1:]
@@ -151,10 +174,14 @@ class OddsScraper:
         return " ".join(home), " ".join(away), result
 
     @staticmethod
-    def _get_result_from_score(score):
+    def _get_result_from_score(score: Sequence[str]) -> str:
+        """
+        Parse score string and returns winner (or draw).
+        :param score: str - in format: <home-goals>:<away_goals> [OT.|pen.]
+        :return: str - "1" (home team win), "X" (draw), "2" (away team win)
+        """
         if score[-1] in ['OT', 'pen.']:
             return "X"
         hg, ag = score[-1].split(":")
         result = "1" if int(hg) > int(ag) else "2"
         return result
-
