@@ -4,9 +4,14 @@
 # VSCode
 .vscode/
 
+# Jupyter
+notebooks/.ipynb_checkpoints
+
 # Data and other resources
 data/
 resources/
 
-# Egg
+# Egg etc.
 src.egg-info/
+src/__pycache__/
+
