@@ -1,2 +1,12 @@
 # PyCharm
 .idea/
+
+# VSCode
+.vscode/
+
+# Data and other resources
+data/
+resources/
+
+# Egg
+src.egg-info/
