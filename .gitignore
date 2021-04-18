@@ -14,4 +14,5 @@ resources/
 # Egg etc.
 src.egg-info/
 src/__pycache__/
+notebooks/scrape.ipynb
 
