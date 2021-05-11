@@ -5,7 +5,7 @@ import multiprocessing as mp
 from pathlib import Path
 
 
-class StatsExtractor:
+class StatsScraper:
     """
     This class communicates with NHL API and gathers stats.
     """
@@ -79,7 +79,14 @@ class StatsExtractor:
             filtered['teams'][team]['teamStats'] = game['liveData']['boxscore']['teams'][team]['teamStats']['teamSkaterStats']
         for play in game['liveData']['plays']['allPlays']:
             if bool(play['coordinates']):
-                filtered['plays'].append({'type': play['result']['eventTypeId'],
-                                          'team': play['team'],
-                                          'coordinates': play['coordinates']})
+                play_dict = {
+                    'type': play['result']['eventTypeId'],
+                    'team': play['team'],
+                    'coordinates': play['coordinates'],
+                    'period': play['about']['period'],
+                    'time': play['about']['periodTime']
+                }
+                if "secondaryType" in play['result']:
+                    play_dict['shotType'] = play['result']['secondaryType']
+                filtered['plays'].append(play_dict)
         return filtered

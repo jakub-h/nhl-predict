@@ -16,3 +16,11 @@ beautifulsoup4==4.9.3
 
 # NHL API stats extractor
 requests==2.25.1
+
+# xG model
+matplotlib==3.4.1
+scikit-learn==0.24.2
+bs4==0.0.1
+hockey_scraper==1.37.7
+src==2.0
+ThinkBayes2==2.0.0

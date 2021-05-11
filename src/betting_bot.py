@@ -3,7 +3,6 @@ import pandas as pd
 from collections.abc import Callable
 import bootstrapped.bootstrap as bs
 import bootstrapped.stats_functions as bs_stats
-import traceback
 
 
 class BettingBot:
