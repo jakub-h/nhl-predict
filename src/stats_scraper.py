@@ -1,8 +1,11 @@
 import pickle
+
+import pandas as pd
 import requests
 import time
 import multiprocessing as mp
 from pathlib import Path
+import src.parsing_utils as pu
 
 
 class StatsScraper:
@@ -61,9 +64,10 @@ class StatsScraper:
     @staticmethod
     def _filter_game_json(game: dict) -> dict:
         """
+        TODO: update
         Filters given game dict (json). Keeps: id of the game, timestamp, teams (id, name, triCode), all plays with
         coordinates (type, team, coordinates). Plays with coordinates are mainly shots, penalty, goals, hits, giveaways,
-        takeaways and faceoffs.
+        takeaways and face-offs.
 
         :param game: dict - raw json from NHL API
         :return: dict - filtered json
@@ -83,10 +87,39 @@ class StatsScraper:
                     'type': play['result']['eventTypeId'],
                     'team': play['team'],
                     'coordinates': play['coordinates'],
+                    'score': play['about']['goals'],
                     'period': play['about']['period'],
                     'time': play['about']['periodTime']
                 }
                 if "secondaryType" in play['result']:
                     play_dict['shotType'] = play['result']['secondaryType']
                 filtered['plays'].append(play_dict)
+        filtered = pu.add_strength(game, filtered)
         return filtered
+
+    def convert_season_to_xg_csv(self, season, to_csv=False):
+        """
+        Convert jsons (pkl) into csv format for xG model.
+
+        :param filename: TODO
+        :param season: TODO
+        :return:
+        """
+        print(f"## StatsExtractor: convert SEASON {season}/{season + 1} to a csv for a xG model.")
+        start = time.time()
+        shots = []
+
+        with open(self._data_path / "games_raw" / f"{season}-{season+1}.pkl", "rb") as f:
+            games = pickle.load(f)
+        for game in games:
+            shots.extend(pu.parse_game(game))
+        shots = pd.DataFrame(shots)
+        if to_csv:
+            end = time.time()
+            filepath = self._data_path / "pbp_csv" / f"{season}-{season + 1}.csv"
+            shots.to_csv(filepath)
+            print(f"... saved [{end - start:.2f} s] to '{filepath}'")
+        else:
+            end = time.time()
+            print(f"... done [{end - start:.2f} s]")
+            return shots
