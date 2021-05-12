@@ -17,3 +17,11 @@ if __name__ == '__main__':
         "max_depth": [5, 10, 20, 40, 80, None],
         "min_samples_split": [2, 4, 8, 16, 32],
     })
+
+    model = XGModel("../data", clf=GradientBoostingClassifier())
+    model.fit(param_grid={
+        "loss": ['deviance', 'exponential'],
+        "n_estimators": [50, 100, 200, 400],
+        "learning_rate": [.0001, 0.001, 0.01, 0.1, 0.2],
+        "min_samples_split": [2, 4, 8, 16, 32],
+    })
