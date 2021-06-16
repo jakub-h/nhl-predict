@@ -42,7 +42,7 @@ class StatsScraper:
         with mp.Pool(n_jobs) as p:
             games = p.map(self._get_game, game_ids)
         # Save to a pickle
-        file_path = self._data_path / "games_raw" / f"{season}-{season+1}.pkl"
+        file_path = self._data_path / "games_raw" / f"{season}-{season+1}.pickle"
         with open(file_path, "wb") as f:
             pickle.dump(games, f)
         end = time.time()
@@ -99,7 +99,7 @@ class StatsScraper:
 
     def convert_season_to_xg_csv(self, season, to_csv=False):
         """
-        Convert jsons (pkl) into csv format for xG model.
+        Convert jsons (pickle) into csv format for xG model.
 
         :param filename: TODO
         :param season: TODO
@@ -109,7 +109,7 @@ class StatsScraper:
         start = time.time()
         shots = []
 
-        with open(self._data_path / "games_raw" / f"{season}-{season+1}.pkl", "rb") as f:
+        with open(self._data_path / "games_raw" / f"{season}-{season+1}.pickle", "rb") as f:
             games = pickle.load(f)
         for game in games:
             shots.extend(pu.parse_game(game))
