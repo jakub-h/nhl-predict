@@ -97,12 +97,12 @@ class StatsScraper:
         filtered = pu.add_strength(game, filtered)
         return filtered
 
-    def convert_season_to_xg_csv(self, season, to_csv=False):
+    def convert_season_to_xg_pandas(self, season, save_to_csv=False):
         """
-        Convert jsons (pickle) into csv format for xG model.
+        Convert jsons (pickle) into pandas DataFrame format for purpose of a xG model.
 
-        :param filename: TODO
-        :param season: TODO
+        :param season: int - season (e.g. 2015 for 2015/1016)
+        :param save_to_csv: boolean - return the result or save it to a csv file
         :return:
         """
         print(f"## StatsExtractor: convert SEASON {season}/{season + 1} to a csv for a xG model.")
@@ -114,7 +114,7 @@ class StatsScraper:
         for game in games:
             shots.extend(pu.parse_game(game))
         shots = pd.DataFrame(shots)
-        if to_csv:
+        if save_to_csv:
             end = time.time()
             filepath = self._data_path / "pbp_csv" / f"{season}-{season + 1}.csv"
             shots.to_csv(filepath)
