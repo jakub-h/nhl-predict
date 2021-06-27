@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+import pickle
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler
 
@@ -12,15 +13,20 @@ class XGModel:
     Model for predicting xG (expected goals) for each unblocked shot. This base class takes a Scikit-learn
     model (as a parameter in constructor) and works as a wrapper for this model.
     """
-    def __init__(self, data_path, model, random_state=37):
+    def __init__(self, data_path, model, random_state=37, dummy=True):
         if isinstance(data_path, Path):
             self._data_path = data_path
         elif isinstance(data_path, str):
             self._data_path = Path(data_path)
         else:
             raise ValueError(f"'data_path' must be a string or an instance of Path class. Not {type(data_path)}.")
+        self._dummy = dummy
         self._random_state = random_state
-        self._model = model
+        if isinstance(model, str) or isinstance(model, Path):
+            with open(model, "rb") as f:
+                self._model = pickle.load(f)
+        else:
+            self._model = model
         self.x_train, self.x_test, self.y_train, self.y_test = self._get_datasets()
         self._scaler = StandardScaler()
         self._scaler.fit(self.x_train)
@@ -47,7 +53,9 @@ class XGModel:
         df.reset_index(drop=True, inplace=True)
 
         # Create dummy variables from categorical
-        df = pd.get_dummies(df, prefix_sep="-", columns=['shot_type', 'prev_event_type'])
+        if self._dummy:
+            df = pd.get_dummies(df, prefix_sep="-", columns=['shot_type', 'prev_event_type'])\
+                   .drop(columns=['shot_type-None'])
 
         return train_test_split(df.drop(columns=['outcome']), df['outcome'],
                                 random_state=self._random_state, train_size=.8)
@@ -114,3 +122,7 @@ class XGModel:
 
         xg = pd.DataFrame(self._model.predict_proba(x))
         return xg[1]
+
+    def save(self, filename):
+        with open(filename, "wb") as f:
+            pickle.dump(self._model, f)

@@ -1,29 +1,19 @@
-import numpy as np
-import pandas as pd
 from typing import Iterable, Union
 
-
-def add_strength(game, filtered):
-    """
-    TODO
-    :param game:
-    :param filtered:
-    :return:
-    """
-    return filtered
+import numpy as np
 
 
-def parse_game(game: dict) -> Iterable[dict]:
+def parse_game_for_xg(game: dict) -> Iterable[dict]:
     game_shots = []
     for i_event in range(len(game['plays'])):
         prev_event = game['plays'][i_event - 1]
         curr_event = game['plays'][i_event]
         if curr_event['type'] in ["GOAL", "SHOT", "MISSED_SHOT"]:
-            game_shots.append(parse_event(curr_event, prev_event, game['teams']))
+            game_shots.append(parse_event_for_xg(curr_event, prev_event, game['teams']))
     return game_shots
 
 
-def parse_event(curr_event: dict, prev_event: dict, teams: dict) -> dict:
+def parse_event_for_xg(curr_event: dict, prev_event: dict, teams: dict) -> dict:
     result = dict()
 
     # Shot type
@@ -44,7 +34,13 @@ def parse_event(curr_event: dict, prev_event: dict, teams: dict) -> dict:
     prev_angle = get_angle_to_goal(prev_event, goal_pos)
     result['distance_change'] = curr_dist - prev_dist
     result['angle_change'] = curr_angle - prev_angle
-    result['time_change'] = get_seconds_from_time(curr_event['time']) - get_seconds_from_time(prev_event['time'])
+    if curr_event['period'] == prev_event['period']:
+        result['time_change'] = get_seconds_from_time(curr_event['time']) - get_seconds_from_time(prev_event['time'])
+    else:
+        result['time_change'] = 600
+    if result['time_change'] < 0:
+        print(prev_event)
+        print(curr_event)
     result['prev_event_type'] = prev_event['type']
     result['prev_event_same_team'] = 1 if curr_event['team']['id'] == prev_event['team']['id'] else 0
 
@@ -54,12 +50,19 @@ def parse_event(curr_event: dict, prev_event: dict, teams: dict) -> dict:
     # Current score
     result['goal_diff'] = get_goal_diff(curr_event, prev_event, teams)
 
+    # Strength
+    result['strength_active'] = curr_event['strength_active']
+    result['strength_opp'] = curr_event['strength_opp']
+
+    # Empty net
+    result['empty_net_opp'] = 1 if curr_event['empty_net_opp'] else 0
+
     # Outcome
     result['outcome'] = 1 if curr_event['type'] == "GOAL" else 0
     return result
 
 
-def determine_goal_position(event:dict, teams: dict) -> np.ndarray:
+def determine_goal_position(event: dict, teams: dict) -> np.ndarray:
     """
     Determines location of opponent's goal (from a shot/goal-like event) based on the period and shooting team.
 
