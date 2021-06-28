@@ -9,12 +9,15 @@ def parse_game_for_xg(game: dict) -> Iterable[dict]:
         prev_event = game['plays'][i_event - 1]
         curr_event = game['plays'][i_event]
         if curr_event['type'] in ["GOAL", "SHOT", "MISSED_SHOT"]:
-            game_shots.append(parse_event_for_xg(curr_event, prev_event, game['teams']))
+            game_shots.append(parse_event_for_xg(curr_event, prev_event, game['teams'], game['id']))
     return game_shots
 
 
-def parse_event_for_xg(curr_event: dict, prev_event: dict, teams: dict) -> dict:
+def parse_event_for_xg(curr_event: dict, prev_event: dict, teams: dict, game_id: int) -> dict:
     result = dict()
+
+    # Game ID
+    result['game_id'] = game_id
 
     # Shot type
     if 'shotType' in curr_event:

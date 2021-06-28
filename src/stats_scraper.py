@@ -189,7 +189,7 @@ class StatsScraper:
         shots = pd.DataFrame(shots)
         if save_to_csv:
             end = time.time()
-            filepath = self._data_path / "pbp_csv" / f"{season}-{season + 1}.csv"
+            filepath = self._data_path / "xg_pbp" / f"{season}-{season + 1}.csv"
             shots.to_csv(filepath)
             print(f"\t... saved [{end - start:.2f} s] to '{filepath}'")
         else:

@@ -5,8 +5,7 @@ from sklearn.linear_model import LogisticRegression
 if __name__ == '__main__':
     """
     model = XGModel("../data", model=LogisticRegression())
-    model.fit(params=dict(penalty='l2', class_weight="balanced", max_iter=1000, C=0.01),
-              normalize=True)
+    model.fit(params=dict(penalty='l2', class_weight="balanced", max_iter=1000, C=0.01))
     y_train_pred = model.predict_xg(model.x_train)
     y_train_pred.index = model.y_train.index
     df = model.x_train
