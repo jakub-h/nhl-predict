@@ -18,7 +18,7 @@ class DatasetManager:
         else:
             raise ValueError(f"'data_path' must be a string or instance of Path class. Not {type(data_path)}.")
 
-    def calculate_in_game_stats(self, season):
+    def calculate_post_game_stats(self, season, save_to_csv=False):
         """
         - away_ / home_
         - _EV, _PP, _SH
@@ -43,20 +43,26 @@ class DatasetManager:
 
         # Define stats scheme
         stat_names = ["G", "SOG", "SMISS", "HIT", "TAKE", "GIVE", "FOW", "BLK", "CORSI", "xG"]
-        schema = dict()
+        schema = {
+            "away_team_id": None,
+            "home_team_id": None
+        }
         for team in ['away', 'home']:
             for situation in ['ALL', 'EV', 'PP', 'SH']:
                 for stat in stat_names:
                     schema[f"{team}_{stat}_{situation}"] = 0
             schema[f"{team}_PPO"] = 0
 
-        # Calculate the stats
         games = []
         for raw_game in games_raw:
             game_stats = schema.copy()
+            # Set team ids
+            for team in ['away', 'home']:
+                game_stats[f'{team}_team_id'] = raw_game['teams'][team]['id']
+            # Calculate the stats
             for play in raw_game['plays']:
-                self._process_play(play, raw_game['teams'], game_stats)
-            self._assign_xg_to_game(game_stats, raw_game['id'], xg_model)
+                if play['period'] <= 3:
+                    self._process_play_post_game(play, raw_game['teams'], game_stats)
 
             # Calculate CORSI
             for team in ['away', 'home']:
@@ -90,10 +96,13 @@ class DatasetManager:
             games.append(game_stats)
         df = pd.DataFrame(games)
         df.index += 1
-        return pd.DataFrame(games)
+        if save_to_csv:
+            df.to_csv(self._data_path / "games_stats" / "post_game" / f"{season}-{season+1}.csv")
+        else:
+            return df
 
     @staticmethod
-    def _process_play(play, teams, game_stats):
+    def _process_play_post_game(play, teams, game_stats):
         """
         Calculate post-game statistics from plays
         :param play:
@@ -144,13 +153,13 @@ class DatasetManager:
         else:
             game_stats[f"{team}_PPO"] += 1
 
-    def _assign_xg_to_game(self, game_stats, game_id, xg_model):
+    def create_pre_game_dataset(self, season, last_n_games):
         """
-        Calculate xG score of whole game (per team)
-        :param game_stats:
-        :param game_id:
-        :param xg_model:
+        Creates a dataset with pre-game stats (from post-game stats).
+
+        With average from whole season and average from last n games.
+        :param season:
+        :param last_n_games:
         :return:
         """
-        # TODO
         pass

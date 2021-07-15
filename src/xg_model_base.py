@@ -126,7 +126,7 @@ class XGModel:
         # Clean data
         if "shot_type" in df.columns:
             # Clean data
-            df.fillna("None", inplace=True)
+            df['shot_type'].fillna("None", inplace=True)
             df['shot_type'] = df['shot_type'].apply(lambda s: s.split(" ")[0])
             df = df.fillna(0)\
                    .reset_index(drop=True)
@@ -141,25 +141,9 @@ class XGModel:
             for col in self.x_train.columns:
                 if col not in df.columns:
                     df[col] = 0
-
         x_scaled = self.scale_dataset(df)
         y = self._model.predict(x_scaled).reshape(-1, 1)
         return pd.DataFrame(self._output_scaler.transform(y), columns=['xG'])['xG']
-
-    '''
-    def predict_xg(self, x):
-        """
-        Predicts xG (probabilities) for given shot-dataset.
-
-        Necessary for some sklearn models (e.g. LogisticRegression)
-
-        :param x:
-        :return: y_pred - probability for each shot
-        """
-        x_scaled = self.scale_dataset(x)
-        xg = pd.DataFrame(self._model.predict_proba(x_scaled))
-        return xg[1]
-    '''
 
     def save(self, filename):
         with open(f"{filename}.pkl", "wb") as f:
