@@ -41,7 +41,7 @@ class DatasetManager:
         xg_pbp = pd.read_csv(self._data_path / "xg_pbp" / f"{season}-{season+1}.csv", index_col=0)
 
         # Load xG model
-        xg_model = XGModel(self._data_path, model="../models/xg_extra_trees_n10")
+        xg_model = XGModel(self._data_path, model=self._data_path.parent / "models/xg_extra_trees_n10")
 
         # Calculate xG predictions for all events (all games in the season)
         xg_pred = xg_model.predict(xg_pbp)
