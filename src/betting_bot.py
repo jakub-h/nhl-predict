@@ -88,11 +88,11 @@ class BettingBot:
         """
         results = []
         header = None
-        for season in range(season_range[0], season_range[1]+1):
+        for season in range(season_range[0], season_range[1] + 1):
             season_result = self.bet_season(season, strategy, verbose, **strategy_kwargs)
             results.append(season_result.values())
             header = season_result.keys()
-        return pd.DataFrame(results, columns=header, index=np.arange(season_range[0], season_range[1]+1))
+        return pd.DataFrame(results, columns=header, index=np.arange(season_range[0], season_range[1] + 1))
 
     def bootstrap_strategy(self, strategy: Callable[[pd.Series], str], season_range=(2005, 2018), metric="profit_rate",
                            **strategy_kwargs) -> tuple:
@@ -107,4 +107,3 @@ class BettingBot:
         """
         df = self.bet_strategy(strategy, season_range, verbose=0, **strategy_kwargs)
         return bs.bootstrap(df[metric].to_numpy(), stat_func=bs_stats.mean)
-

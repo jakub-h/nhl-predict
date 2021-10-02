@@ -76,7 +76,7 @@ def determine_goal_position(event: dict, teams: dict) -> np.ndarray:
     :param teams:
     :return:
     """
-    goal_pos = np.array([-89.0, 0.0])               # approximate location (there are some issues discussed about it on Twitter)
+    goal_pos = np.array([-89.0, 0.0])               # approximate location (there is some discussion on Twitter)
     if event['team']['id'] == teams['home']['id']:  # home team is the active one in this event
         if event['period'] % 2 == 0:                # 2nd period and overtime (home: left -> right)
             goal_pos = -goal_pos
@@ -125,7 +125,7 @@ def get_angle_to_goal(event: dict, goal_coords: np.ndarray) -> np.float32:
 
 def get_seconds_from_time(time):
     m, s = time.split(":")
-    return int(m)*60 + int(s)
+    return int(m) * 60 + int(s)
 
 
 def get_goal_diff(curr_event, prev_event, teams):

@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.xg_model_base import XGModel
+import src.stats_utils as su
 
 SITUATIONS = ["ALL", "EV", "PP", "SH"]
 
@@ -22,12 +23,14 @@ class DatasetManager:
         else:
             raise ValueError(f"'data_path' must be a string or instance of Path class. Not {type(data_path)}.")
 
-    def calculate_post_game_stats(self, season, save_to_csv=False):
+    def calculate_post_game_stats(self, season, save_to_csv=False): # noqa C901
         """
-        - away_ / home_
-        - _EV, _PP, _SH
-        - G, SOG, SMISS, HIT, TAKE, GIVE, FOW, PPO, PIM, BLK, CORSI
-        - xG
+        Create a dataset with post-game stats (actual stats from each game).
+
+        - [away_ | home_] ... prefix
+        - [_ALL | _EV | _PP | _SH] ... suffix
+        - G, SOG, SMISS, HIT, TAKE, GIVE, FOW, PPO, PIM, BLK, CORSI, xG ... stats
+
         :param season:
         :return:
         """
@@ -67,14 +70,14 @@ class DatasetManager:
             # Calculate the basic stats
             for play in raw_game['plays']:
                 if play['period'] <= 3:     # Exclude overtime stats
-                    self._process_play_post_game(play, raw_game['teams'], game_stats)
+                    su.process_play_post_game(play, raw_game['teams'], game_stats)
 
             # Calculate CORSI
             for team in ['away', 'home']:
                 for situation in SITUATIONS:
-                    game_stats[f"{team}_CORSI_{situation}"] = game_stats[f"{team}_G_{situation}"] +\
-                                                              game_stats[f"{team}_SOG_{situation}"] +\
-                                                              game_stats[f"{team}_SMISS_{situation}"]
+                    game_stats[f"{team}_CORSI_{situation}"] = (game_stats[f"{team}_G_{situation}"]
+                                                               + game_stats[f"{team}_SOG_{situation}"]
+                                                               + game_stats[f"{team}_SMISS_{situation}"])
 
                     # Add blocked shots (BLK is number of blocks of opposing team)
                     if team == "away":
@@ -108,64 +111,12 @@ class DatasetManager:
         else:
             return df
 
-    @staticmethod
-    def _process_play_post_game(play, teams, game_stats):
-        """
-        Calculate post-game statistics from plays
-
-        :param play:
-        :param game_stats:
-        :return:
-        """
-        # Determine active team
-        if play['team']['id'] == teams['away']['id']:
-            team = "away"
-        else:
-            team = "home"
-
-        # Determine type of the stat
-        if play['type'] == "GOAL":
-            stat = "G"
-        elif play['type'] == "SHOT":
-            stat = "SOG"
-        elif play['type'] == "MISSED_SHOT":
-            stat = "SMISS"
-        elif play['type'] == "HIT":
-            stat = "HIT"
-        elif play['type'] == "TAKEAWAY":
-            stat = "TAKE"
-        elif play['type'] == "GIVEAWAY":
-            stat = "GIVE"
-        elif play['type'] == "BLOCKED_SHOT":
-            stat = "BLK"
-        elif play['type'] == "FACEOFF":
-            stat = "FOW"
-        elif play['type'] == "PENALTY":
-            stat = "PPO"
-            team = "away" if team == "home" else "home"     # switch team (penalty on vs. powerplay opportunity)
-        else:
-            raise ValueError(f"W: Unknown type of play: {play['type']}")
-
-        # Determine strength situation (even, pp, sh)
-        if play['strength_active'] == play['strength_opp']:
-            situation = "EV"
-        elif play['strength_active'] > play['strength_opp']:
-            situation = "PP"
-        else:
-            situation = "SH"
-
-        # Increase the stat
-        if stat != "PPO":
-            game_stats[f"{team}_{stat}_{situation}"] += 1
-            game_stats[f"{team}_{stat}_ALL"] += 1
-        else:
-            game_stats[f"{team}_PPO"] += 1
-
     def calculate_pre_game_stats(self, season, last_n_games=5, save_to_csv=False, verbose=0):
         """
         Create a dataset with pre-game stats (from post-game stats).
 
-        With average from whole season and average from last n games.
+        Mean value of each stat from whole season and from last n games. With respect to home, away or both games.
+
         :param season:
         :param last_n_games:
         :return:
@@ -191,8 +142,8 @@ class DatasetManager:
                     "home": None
                 }
                 for prev_games_type in ['away', 'home']:
-                    prev_games[prev_games_type] = stats_post[(stats_post.index < game_id) &
-                                                             (stats_post[f'{prev_games_type}_team_id'] == team_id)]
+                    prev_games[prev_games_type] = stats_post[
+                        (stats_post.index < game_id) & (stats_post[f'{prev_games_type}_team_id'] == team_id)]
 
                 # Get stats aggregates from previous away/home games of selected team
                 team_stats[team] = self._get_stat_averages(
@@ -212,11 +163,11 @@ class DatasetManager:
         else:
             return stats_pre
 
-    def _get_stat_averages(self, prev_games, last_n_games=5):
+    def _get_stat_averages(self, self2, prev_games, last_n_games=5):
         """
-        TODO: Add percentages (PP%, FO%, PK%, CORSI%, xG%,...)
-
         Calculate mean values of basic stats from given history (previous games in the season) of a team.
+
+        TODO: Add percentages (PP%, FO%, PK%, CORSI%, xG%,...)
 
         :param prev_games:
         :param last_n_games:
@@ -226,13 +177,13 @@ class DatasetManager:
 
         stats_aggr = {}     # Stats aggregates (mean values of past games)
         for active_team in ['away', 'home', 'both']:    # Previous away, home or all games of selected team
-            opp_team = self._get_opp_team(active_team)
+            opp_team = su.get_opp_team(active_team)
             for stat in basic_stats:
                 for situation in SITUATIONS:
-                    opp_situation = self._get_opp_situation(situation)
+                    opp_situation = su.get_opp_situation(situation)
                     for last_games_flag in [False, True]:
                         for for_against in ['F', 'A']:
-                            source_col = self._get_source_col_names(
+                            source_col = su.get_source_col_names(
                                 for_against, situation, active_team, stat, opp_situation, opp_team
                             )
 
@@ -256,45 +207,6 @@ class DatasetManager:
                             else:
                                 stats_aggr[target_col] = games_stats.mean()
         return stats_aggr
-
-    @staticmethod
-    def _get_opp_situation(situation):
-        if situation == "SH":
-            return "PP"
-        if situation == "PP":
-            return "SH"
-        return None
-
-    @staticmethod
-    def _get_opp_team(active_team):
-        if active_team == "away":
-            return "home"
-        if active_team == "home":
-            return "away"
-        return None
-
-    @staticmethod
-    def _get_source_col_names(for_against, situation, active_team, stat, opp_situation, opp_team):
-        if active_team in ['away', 'home']:
-            if for_against == "F":
-                return f"{active_team}_{stat}_{situation}"
-            if situation in ['PP', 'SH']:
-                return f"{opp_team}_{stat}_{opp_situation}"
-            return f"{opp_team}_{stat}_{situation}"
-        else:   # Both - return two column names
-            if for_against == "F":
-                return f"away_{stat}_{situation}", f"home_{stat}_{situation}"
-            if situation in ['PP', 'SH']:
-                return f"home_{stat}_{opp_situation}", f"away_{stat}_{opp_situation}"
-            return f"home_{stat}_{situation}", f"away_{stat}_{situation}"
-
-    @staticmethod
-    def determine_winner(goal_diff):
-        if goal_diff > 0:
-            return "away"
-        if goal_diff < 0:
-            return "home"
-        return "draw"
 
     def get_whole_dataset(self):
         # Load inputs (x; pre-game stats)

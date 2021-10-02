@@ -1,5 +1,3 @@
-from keras import activations
-from sklearn.utils.extmath import softmax
 from src.dataset_manager import DatasetManager
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -11,6 +9,7 @@ from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.metrics import Precision, Recall, AUC
 import tensorflow as tf
 import plotly.express as px
+
 
 def prepare_train_val_split():
     dm = DatasetManager("data")
@@ -28,7 +27,7 @@ def prepare_train_val_split():
 
 def train_NN(train_val_data, epochs, batch_size):
     x_train, x_val, y_train, y_val = train_val_data
-    
+
     model = Sequential()
     model.add(InputLayer(input_shape=x_train.shape[1]))
     model.add(Dense(512, activation=tf.nn.relu))

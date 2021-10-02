@@ -40,7 +40,7 @@ class StatsScraper:
             n_games = 1230
         else:
             n_games = 1271
-        game_ids = [f"{season}02{i_game:04d}" for i_game in range(1, n_games+1)]
+        game_ids = [f"{season}02{i_game:04d}" for i_game in range(1, n_games + 1)]
         if n_jobs == 1:   # Sequential download
             games = []
             for i_game in tqdm(game_ids):
@@ -88,7 +88,8 @@ class StatsScraper:
             filtered['teams'][team] = {}
             for key in ['id', 'name', 'triCode']:
                 filtered['teams'][team][key] = game['gameData']['teams'][team][key]
-            filtered['teams'][team]['teamStats'] = game['liveData']['boxscore']['teams'][team]['teamStats']['teamSkaterStats']
+            filtered['teams'][team]['teamStats'] = (game['liveData']['boxscore']['teams']
+                                                        [team]['teamStats']['teamSkaterStats'])
         i = 0
         for play in game['liveData']['plays']['allPlays']:
             if bool(play['coordinates']):

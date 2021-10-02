@@ -1,6 +1,6 @@
 from src.xg_model_base import XGModel
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesRegressor
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import ExtraTreesRegressor
+
 
 if __name__ == '__main__':
     """

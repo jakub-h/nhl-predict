@@ -5,7 +5,6 @@ import pickle
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler, QuantileTransformer, MinMaxScaler
 from sklearn.pipeline import Pipeline
-import matplotlib.pyplot as plt
 
 
 class XGModel:

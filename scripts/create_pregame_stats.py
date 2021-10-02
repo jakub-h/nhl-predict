@@ -15,4 +15,3 @@ if __name__ == '__main__':
     print(f"# PRE_GAME stats (parallel): n_jobs={n_jobs}; seasons={seasons}")
     with Pool(n_jobs) as p:
         p.map(parallel_dm_caller, seasons)
-

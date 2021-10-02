@@ -25,7 +25,7 @@ class OddsScraper:
         Scrapes and parses whole season and returns it in a DataFrame.
 
         :param season: int - initial year of a season (e.g. 2015 for 2015/2016 season)
-        :return: pd.DataFrame - all regular season games with pregame odds (home "1", draw "X", away "2") and final score.
+        :return: pd.DataFrame - all reg. season games with pregame odds (home "1", draw "X", away "2") and final score.
         """
         print(f"## OddsScraper: Scraping season {season}-{season+1} ... ", end="", flush=True)
         start = time.time()
@@ -66,7 +66,7 @@ class OddsScraper:
         return pd.concat(pages).sort_values("date").reset_index(drop=True)
 
     @staticmethod
-    def _parse_page(page_content: Sequence[str]) -> pd.DataFrame:
+    def _parse_page(page_content: Sequence[str]) -> pd.DataFrame: # noqa C901
         """
         Goes through text content of scraped webpage, parses the results and odds, creates and returns a DataFrame.
 
@@ -157,7 +157,7 @@ class OddsScraper:
         :param row_split: list of words in the row
         :param standard: whether the row is standard or needs some special treatment (score is missing, has some note
                          like Winter Classic etc.
-        :return: tuple (home_team_name, away_team_name, result) if standard row, (home_team_name, away_team_name) otherwise.
+        :return: tuple (home_team_name, away_team_name, result) if std row, (home_team_name, away_team_name) otherwise.
         """
         i = row_split.index("-")
         home = row_split[:i]
