@@ -1,7 +1,5 @@
 import pickle
-import json
 import tqdm
-import time
 from pathlib import Path
 
 import pandas as pd
@@ -114,6 +112,7 @@ class DatasetManager:
     def _process_play_post_game(play, teams, game_stats):
         """
         Calculate post-game statistics from plays
+
         :param play:
         :param game_stats:
         :return:
@@ -164,7 +163,7 @@ class DatasetManager:
 
     def calculate_pre_game_stats(self, season, last_n_games=5, save_to_csv=False, verbose=0):
         """
-        Creates a dataset with pre-game stats (from post-game stats).
+        Create a dataset with pre-game stats (from post-game stats).
 
         With average from whole season and average from last n games.
         :param season:
@@ -215,12 +214,9 @@ class DatasetManager:
 
     def _get_stat_averages(self, prev_games, last_n_games=5):
         """
-        dostanu seznam predeslych domacich a venkonvnich zapasu daneho tymu (dict[str->DataFrame]). Spocitam z nich statistiky z
-        domacich, venkovnich a vsechn zapasu. Zakladni statistiky ziskam jako For a Agains.
+        TODO: Add percentages (PP%, FO%, PK%, CORSI%, xG%,...)
 
-        TODO: Pridam procentualni statistiky jako PP%, FO%, PK%, CORSI%, xG%,...
-
-        Vracim jeden radek (dict) se souhrnyma statistikama daneho tymu pred pozadovanym zapasem.
+        Calculate mean values of basic stats from given history (previous games in the season) of a team.
 
         :param prev_games:
         :param last_n_games:
@@ -291,3 +287,38 @@ class DatasetManager:
             if situation in ['PP', 'SH']:
                 return f"home_{stat}_{opp_situation}", f"away_{stat}_{opp_situation}"
             return f"home_{stat}_{situation}", f"away_{stat}_{situation}"
+
+    @staticmethod
+    def determine_winner(goal_diff):
+        if goal_diff > 0:
+            return "away"
+        if goal_diff < 0:
+            return "home"
+        return "draw"
+
+    def get_whole_dataset(self):
+        # Load inputs (x; pre-game stats)
+        pre_game_stats_path = self._data_path / "games_stats" / "pre_game"
+        dataframes = []
+        for season in sorted(pre_game_stats_path.iterdir()):
+            if season.suffix == ".csv":
+                df = pd.read_csv(season, index_col=0)
+                df['season'] = season.stem
+                dataframes.append(df)
+        x = pd.concat(dataframes).reset_index()
+
+        # Load desired outputs (y; outcomes of the games)
+        post_game_stats_path = self._data_path / "games_stats" / "post_game"
+        dataframes = []
+        for season in sorted(post_game_stats_path.iterdir()):
+            if season.suffix == ".csv":
+                df = pd.read_csv(season, index_col=0)
+                df = df[['away_G_ALL', "home_G_ALL"]]
+                df['season'] = season.stem
+                dataframes.append(df)
+        y = pd.concat(dataframes).reset_index()
+        y["goal_diff"] = y['away_G_ALL'] - y['home_G_ALL']
+        y['result'] = y['goal_diff'].apply(self.determine_winner)
+        y = y[['index', 'season', 'result']]
+
+        return x.drop(columns=['index', 'season']), y['result']
