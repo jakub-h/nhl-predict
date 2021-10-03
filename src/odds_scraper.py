@@ -14,9 +14,8 @@ class OddsScraper:
     """
     Class for scraping historical odds of NHL games.
     """
-    def __init__(self,
-                 base_url,
-                 driver_path):
+
+    def __init__(self, base_url, driver_path):
         self._base_url = base_url
         self._driver_path = driver_path
 
@@ -66,7 +65,7 @@ class OddsScraper:
         return pd.concat(pages).sort_values("date").reset_index(drop=True)
 
     @staticmethod
-    def _parse_page(page_content: Sequence[str]) -> pd.DataFrame: # noqa C901
+    def _parse_page(page_content: Sequence[str]) -> pd.DataFrame:
         """
         Goes through text content of scraped webpage, parses the results and odds, creates and returns a DataFrame.
 
@@ -142,11 +141,11 @@ class OddsScraper:
                     games.append(game)
                     state = "date/teams"
         df = pd.DataFrame(games, columns=header)
-        df['date'] = pd.to_datetime(df['date'])
+        df["date"] = pd.to_datetime(df["date"])
         df.replace("-", 1.0, inplace=True)
-        df['1'] = pd.to_numeric(df['1'], downcast="float")
-        df['X'] = pd.to_numeric(df['X'], downcast="float")
-        df['2'] = pd.to_numeric(df['2'], downcast="float")
+        df["1"] = pd.to_numeric(df["1"], downcast="float")
+        df["X"] = pd.to_numeric(df["X"], downcast="float")
+        df["2"] = pd.to_numeric(df["2"], downcast="float")
         return df
 
     @staticmethod
@@ -161,7 +160,7 @@ class OddsScraper:
         """
         i = row_split.index("-")
         home = row_split[:i]
-        away = row_split[i + 1:]
+        away = row_split[i + 1 :]
         if not standard:
             if away[-1] in ["OT", "pen."]:
                 away = away[:-1]
@@ -180,7 +179,7 @@ class OddsScraper:
         :param score: str - in format: <home-goals>:<away_goals> [OT.|pen.]
         :return: str - "1" (home team win), "X" (draw), "2" (away team win)
         """
-        if score[-1] in ['OT', 'pen.']:
+        if score[-1] in ["OT", "pen."]:
             return "X"
         hg, ag = score[-1].split(":")
         result = "1" if int(hg) > int(ag) else "2"

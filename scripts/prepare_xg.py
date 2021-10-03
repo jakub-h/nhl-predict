@@ -1,7 +1,6 @@
 from src.stats_scraper import StatsScraper
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     ss = StatsScraper("../data")
     for season in range(2010, 2019):
         ss.download_season(season, n_jobs=6)

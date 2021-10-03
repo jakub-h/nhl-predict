@@ -1,8 +1,7 @@
-from src.xg_model_base import XGModel
 from sklearn.ensemble import ExtraTreesRegressor
+from src.xg_model_base import XGModel
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     """
     model = XGModel("../data", model=LogisticRegression())
     model.fit(params=dict(penalty='l2', class_weight="balanced", max_iter=1000, C=0.01))
@@ -19,11 +18,14 @@ if __name__ == '__main__':
     })
     """
     model = XGModel("../data", model=ExtraTreesRegressor())
-    cv = model.grid_search(param_grid={
-        "n_estimators": [20],
-        "max_depth": [20],
-        "min_samples_split": [128, 256, 512],
-    }, verbose=5)
+    cv = model.grid_search(
+        param_grid={
+            "n_estimators": [20],
+            "max_depth": [20],
+            "min_samples_split": [128, 256, 512],
+        },
+        verbose=5,
+    )
     print(cv.best_estimator_)
     print(cv.best_params_)
     print(cv.best_score_)

@@ -16,6 +16,7 @@ class StatsScraper:
     """
     This class communicates with NHL API and gathers stats.
     """
+
     def __init__(self, data_path):
         if isinstance(data_path, Path):
             self._data_path = data_path
@@ -34,18 +35,18 @@ class StatsScraper:
         print(f"## StatsExtractor: download SEASON {season}/{season+1} from NHL API")
         # Initialization
         start = time.time()
-        if season == 2012:      # Lockout season
+        if season == 2012:  # Lockout season
             n_games = 720
-        elif season < 2017:     # VGK came into NHL
+        elif season < 2017:  # VGK came into NHL
             n_games = 1230
         else:
             n_games = 1271
         game_ids = [f"{season}02{i_game:04d}" for i_game in range(1, n_games + 1)]
-        if n_jobs == 1:   # Sequential download
+        if n_jobs == 1:  # Sequential download
             games = []
             for i_game in tqdm(game_ids):
                 games.append(StatsScraper._get_game(i_game))
-        else:   # Parallel download
+        else:  # Parallel download
             with mp.Pool(n_jobs) as p:
                 games = p.map(StatsScraper._get_game, game_ids)
         # Save to a pickle
@@ -80,31 +81,34 @@ class StatsScraper:
         :param game: dict - raw json from NHL API
         :return: dict - filtered json
         """
-        filtered = {'id': game['gamePk'],
-                    'datetime': game['gameData']['datetime']['dateTime'],
-                    'teams': {},
-                    'plays': []}
-        for team in ['home', 'away']:
-            filtered['teams'][team] = {}
-            for key in ['id', 'name', 'triCode']:
-                filtered['teams'][team][key] = game['gameData']['teams'][team][key]
-            filtered['teams'][team]['teamStats'] = (game['liveData']['boxscore']['teams']
-                                                        [team]['teamStats']['teamSkaterStats'])
+        filtered = {
+            "id": game["gamePk"],
+            "datetime": game["gameData"]["datetime"]["dateTime"],
+            "teams": {},
+            "plays": [],
+        }
+        for team in ["home", "away"]:
+            filtered["teams"][team] = {}
+            for key in ["id", "name", "triCode"]:
+                filtered["teams"][team][key] = game["gameData"]["teams"][team][key]
+            filtered["teams"][team]["teamStats"] = game["liveData"]["boxscore"]["teams"][team]["teamStats"][
+                "teamSkaterStats"
+            ]
         i = 0
-        for play in game['liveData']['plays']['allPlays']:
-            if bool(play['coordinates']):
+        for play in game["liveData"]["plays"]["allPlays"]:
+            if bool(play["coordinates"]):
                 play_dict = {
-                    'id': i,
-                    'type': play['result']['eventTypeId'],
-                    'team': play['team'],
-                    'coordinates': play['coordinates'],
-                    'score': play['about']['goals'],
-                    'period': play['about']['period'],
-                    'time': play['about']['periodTime']
+                    "id": i,
+                    "type": play["result"]["eventTypeId"],
+                    "team": play["team"],
+                    "coordinates": play["coordinates"],
+                    "score": play["about"]["goals"],
+                    "period": play["about"]["period"],
+                    "time": play["about"]["periodTime"],
                 }
-                if "secondaryType" in play['result']:
-                    play_dict['shotType'] = play['result']['secondaryType']
-                filtered['plays'].append(play_dict)
+                if "secondaryType" in play["result"]:
+                    play_dict["shotType"] = play["result"]["secondaryType"]
+                filtered["plays"].append(play_dict)
                 i += 1
         filtered = StatsScraper.add_strength(game, filtered)
         return filtered
@@ -122,7 +126,7 @@ class StatsScraper:
         new_stats = []
 
         # Get a HTML report
-        game_id = str(game['gamePk'])
+        game_id = str(game["gamePk"])
         season = int(game_id[:4])
         url = f"http://www.nhl.com/scores/htmlreports/{season}{season + 1}/PL{game_id[4:]}.HTM"
         response = requests.get(url)
@@ -131,44 +135,42 @@ class StatsScraper:
         soup = BeautifulSoup(response.content, features="lxml")
 
         # Go through all events in the game
-        trs = soup.find_all("tr", attrs={'class': ["evenColor", "oddColor"]})
+        trs = soup.find_all("tr", attrs={"class": ["evenColor", "oddColor"]})
         for tr in trs:
             columns = tr.find_all("td", recursive=False)
             away_on_ice = columns[6].find_all("td")  # players currently on ice
             home_on_ice = columns[7].find_all("td")
             play = {
-                'id': columns[0].text,
-                'type': columns[4].text,
-                'strength': columns[2].text,
-                'str_away': len(away_on_ice) // 4,
-                'str_home': len(home_on_ice) // 4,
+                "id": columns[0].text,
+                "type": columns[4].text,
+                "strength": columns[2].text,
+                "str_away": len(away_on_ice) // 4,
+                "str_home": len(home_on_ice) // 4,
             }
             # check if empty net
             if away_on_ice and home_on_ice:
-                play['empty_net_away'] = False if "G" in away_on_ice[-1].text else True
-                play['empty_net_home'] = False if "G" in home_on_ice[-1].text else True
+                play["empty_net_away"] = False if "G" in away_on_ice[-1].text else True
+                play["empty_net_home"] = False if "G" in home_on_ice[-1].text else True
             new_stats.append(play)
 
         # Convert to pandas DataFrame
         ns = pd.DataFrame(new_stats)
-        ns = ns[~ns['type'].isin(['PGSTR', 'PGEND', 'ANTHEM', 'PSTR', 'PEND', 'STOP', 'GEND'])]
-        ns['str_away'] = pd.to_numeric(ns['str_away'], downcast="unsigned")
-        ns['str_home'] = pd.to_numeric(ns['str_home'], downcast="unsigned")
-        ns = ns.replace('\xa0', np.nan) \
-            .drop('id', axis=1) \
-            .reset_index(drop=True)
+        ns = ns[~ns["type"].isin(["PGSTR", "PGEND", "ANTHEM", "PSTR", "PEND", "STOP", "GEND"])]
+        ns["str_away"] = pd.to_numeric(ns["str_away"], downcast="unsigned")
+        ns["str_home"] = pd.to_numeric(ns["str_home"], downcast="unsigned")
+        ns = ns.replace("\xa0", np.nan).drop("id", axis=1).reset_index(drop=True)
 
         # Merge strengths and empty nets with previous play info ('filtered')
-        for play in filtered['plays']:
-            ns_play = ns.loc[play['id']]
-            if play['team']['id'] == filtered['teams']['home']['id']:
-                play['strength_active'] = ns_play['str_home'].item()
-                play['strength_opp'] = ns_play['str_away'].item()
-                play['empty_net_opp'] = ns_play['empty_net_away']
+        for play in filtered["plays"]:
+            ns_play = ns.loc[play["id"]]
+            if play["team"]["id"] == filtered["teams"]["home"]["id"]:
+                play["strength_active"] = ns_play["str_home"].item()
+                play["strength_opp"] = ns_play["str_away"].item()
+                play["empty_net_opp"] = ns_play["empty_net_away"]
             else:
-                play['strength_active'] = ns_play['str_away'].item()
-                play['strength_opp'] = ns_play['str_home'].item()
-                play['empty_net_opp'] = ns_play['empty_net_home']
+                play["strength_active"] = ns_play["str_away"].item()
+                play["strength_opp"] = ns_play["str_home"].item()
+                play["empty_net_opp"] = ns_play["empty_net_home"]
         return filtered
 
     def convert_season_to_xg_pandas(self, season, save_to_csv=False):

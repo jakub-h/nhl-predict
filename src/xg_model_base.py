@@ -1,10 +1,10 @@
+import pickle
 from pathlib import Path
 
 import pandas as pd
-import pickle
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.preprocessing import StandardScaler, QuantileTransformer, MinMaxScaler
+from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MinMaxScaler, QuantileTransformer, StandardScaler
 
 
 class XGModel:
@@ -30,21 +30,22 @@ class XGModel:
         if isinstance(model, str) or isinstance(model, Path):
             with open(f"{model}.pkl", "rb") as f:
                 self._model = pickle.load(f)
-            with open(f"{model}_out-scaler.pkl", 'rb') as f:
+            with open(f"{model}_out-scaler.pkl", "rb") as f:
                 self._output_scaler = pickle.load(f)
         else:
             # Initiate fresh unfitted model
             self._model = model
             # Initiate fresh unfitted output scaler (Optimized for ExtraTreeRegressor!)
-            self._output_scaler = Pipeline([('quantile', QuantileTransformer(output_distribution="normal")),
-                                            ('minmax', MinMaxScaler())])
+            self._output_scaler = Pipeline(
+                [("quantile", QuantileTransformer(output_distribution="normal")), ("minmax", MinMaxScaler())]
+            )
 
         # Load datasets and split into train/test
         self.x_train, self.x_test, self.y_train, self.y_test = self._get_datasets()
 
         # Fit data scaler
         self._scaler = StandardScaler()
-        self._scaler.fit(self.x_train.drop(columns=['game_id']))
+        self._scaler.fit(self.x_train.drop(columns=["game_id"]))
 
     def _get_datasets(self):
         """
@@ -62,17 +63,19 @@ class XGModel:
         df = pd.concat(csvs)
 
         # Clean data
-        df['shot_type'].fillna("None", inplace=True)
-        df['shot_type'] = df['shot_type'].apply(lambda x: x.split(" ")[0])
+        df["shot_type"].fillna("None", inplace=True)
+        df["shot_type"] = df["shot_type"].apply(lambda x: x.split(" ")[0])
         df.fillna(0, inplace=True)
         df.reset_index(drop=True, inplace=True)
 
         # Create dummy variables from categorical
-        df = pd.get_dummies(df, prefix_sep="-", columns=['shot_type', 'prev_event_type']) \
-            .drop(columns=['shot_type-None'])
+        df = pd.get_dummies(df, prefix_sep="-", columns=["shot_type", "prev_event_type"]).drop(
+            columns=["shot_type-None"]
+        )
 
-        return train_test_split(df.drop(columns=['outcome']), df['outcome'],
-                                random_state=self._random_state, train_size=.8)
+        return train_test_split(
+            df.drop(columns=["outcome"]), df["outcome"], random_state=self._random_state, train_size=0.8
+        )
 
     def scale_dataset(self, x):
         """
@@ -80,8 +83,9 @@ class XGModel:
 
         Also drops game_id columns.
         """
-        scaled = pd.DataFrame(self._scaler.transform(x.drop(columns=['game_id'])),
-                              index=x.index, columns=x.columns.drop("game_id"))
+        scaled = pd.DataFrame(
+            self._scaler.transform(x.drop(columns=["game_id"])), index=x.index, columns=x.columns.drop("game_id")
+        )
         return scaled
 
     def grid_search(self, param_grid, scoring="roc_auc", verbose=1, n_jobs=-1):
@@ -125,24 +129,23 @@ class XGModel:
         # Clean data
         if "shot_type" in df.columns:
             # Clean data
-            df['shot_type'].fillna("None", inplace=True)
-            df['shot_type'] = df['shot_type'].apply(lambda s: s.split(" ")[0])
-            df = df.fillna(0)\
-                   .reset_index(drop=True)
+            df["shot_type"].fillna("None", inplace=True)
+            df["shot_type"] = df["shot_type"].apply(lambda s: s.split(" ")[0])
+            df = df.fillna(0).reset_index(drop=True)
 
             # Create dummy variables from categorical
-            df = pd.get_dummies(df, prefix_sep="-", columns=['shot_type', 'prev_event_type'])
-            if 'shot_type-None' in df.columns:
-                df.drop(columns=['shot_type-None'], inplace=True)
-            if 'outcome' in df.columns:
-                df.drop(columns=['outcome'], inplace=True)
+            df = pd.get_dummies(df, prefix_sep="-", columns=["shot_type", "prev_event_type"])
+            if "shot_type-None" in df.columns:
+                df.drop(columns=["shot_type-None"], inplace=True)
+            if "outcome" in df.columns:
+                df.drop(columns=["outcome"], inplace=True)
             # Correct the columns
             for col in self.x_train.columns:
                 if col not in df.columns:
                     df[col] = 0
         x_scaled = self.scale_dataset(df)
         y = self._model.predict(x_scaled).reshape(-1, 1)
-        return pd.DataFrame(self._output_scaler.transform(y), columns=['xG'])['xG']
+        return pd.DataFrame(self._output_scaler.transform(y), columns=["xG"])["xG"]
 
     def save(self, filename):
         with open(f"{filename}.pkl", "wb") as f:

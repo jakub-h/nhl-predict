@@ -1,8 +1,9 @@
-import numpy as np
-import pandas as pd
 from collections.abc import Callable
+
 import bootstrapped.bootstrap as bs
 import bootstrapped.stats_functions as bs_stats
+import numpy as np
+import pandas as pd
 
 
 class BettingBot:
@@ -12,13 +13,13 @@ class BettingBot:
 
     def _get_revenue(self, game: pd.Series) -> float:
         """If the bet was won, returns bet_size * odd (revenue). Otherwise returns 0."""
-        if game['win']:
-            return self._bet_size * game[game['bet']]
+        if game["win"]:
+            return self._bet_size * game[game["bet"]]
         return 0
 
     def _get_deposit(self, game: pd.Series) -> int:
         """If a bet was placed, returns bet_size (deposit). Otherwise returns 0."""
-        if pd.isna(game['bet']):
+        if pd.isna(game["bet"]):
             return 0
         return self._bet_size
 
@@ -33,10 +34,10 @@ class BettingBot:
         :return: pd.DataFrame - with added columns ['bet', 'win', 'revenue', 'deposit']
         """
         df = pd.read_pickle(self._base_path / f"{season}-{season + 1}.pkl")
-        df['bet'] = df.apply(strategy, **strategy_kwargs, axis=1)
-        df['win'] = df['result'] == df['bet']
-        df['revenue'] = df.apply(self._get_revenue, axis=1)
-        df['deposit'] = df.apply(self._get_deposit, axis=1)
+        df["bet"] = df.apply(strategy, **strategy_kwargs, axis=1)
+        df["win"] = df["result"] == df["bet"]
+        df["revenue"] = df.apply(self._get_revenue, axis=1)
+        df["deposit"] = df.apply(self._get_deposit, axis=1)
         return df
 
     def bet_season(self, season: int, strategy: Callable[[pd.Series], str], verbose=1, **strategy_kwargs) -> dict:
@@ -51,19 +52,14 @@ class BettingBot:
         :return: dict - {"revenue", "deposit", "profit", "profit_rate"}
         """
         df = self._bet_season(season, strategy, **strategy_kwargs)
-        revenue = df['revenue'].sum()
-        deposit = df['deposit'].sum()
+        revenue = df["revenue"].sum()
+        deposit = df["deposit"].sum()
         profit = revenue - deposit
         if deposit > 0:
             profit_rate = profit / deposit * 100
         else:
             profit_rate = np.nan
-        result = {
-            "revenue": revenue,
-            "deposit": deposit,
-            "profit": profit,
-            "profit_rate": profit_rate
-        }
+        result = {"revenue": revenue, "deposit": deposit, "profit": profit, "profit_rate": profit_rate}
         if verbose:
             print(f"## BettingBot (SEASON {season}/{season+1})")
             print(f"--> Strategy: {strategy.__doc__}")
@@ -75,8 +71,9 @@ class BettingBot:
             print()
         return result
 
-    def bet_strategy(self, strategy: Callable[[pd.Series], str], season_range=(2005, 2018), verbose=0,
-                     **strategy_kwargs) -> pd.DataFrame:
+    def bet_strategy(
+        self, strategy: Callable[[pd.Series], str], season_range=(2005, 2018), verbose=0, **strategy_kwargs
+    ) -> pd.DataFrame:
         """
         Tests given betting strategy on seasons from season_range.
 
@@ -94,8 +91,9 @@ class BettingBot:
             header = season_result.keys()
         return pd.DataFrame(results, columns=header, index=np.arange(season_range[0], season_range[1] + 1))
 
-    def bootstrap_strategy(self, strategy: Callable[[pd.Series], str], season_range=(2005, 2018), metric="profit_rate",
-                           **strategy_kwargs) -> tuple:
+    def bootstrap_strategy(
+        self, strategy: Callable[[pd.Series], str], season_range=(2005, 2018), metric="profit_rate", **strategy_kwargs
+    ) -> tuple:
         """
         Tests a strategy on given seasons and returns bootstrapped estimation of mean of given metric.
 
