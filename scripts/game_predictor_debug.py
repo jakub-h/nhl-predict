@@ -1,14 +1,14 @@
-from src.dataset_manager import DatasetManager
+import pandas as pd
+import plotly.express as px
+import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-import pandas as pd
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import InputLayer, Dense, Dropout
-from tensorflow.keras.optimizers import Adam
+from src.dataset_manager import DatasetManager
+from tensorflow.keras.layers import Dense, Dropout, InputLayer
 from tensorflow.keras.losses import CategoricalCrossentropy
-from tensorflow.keras.metrics import Precision, Recall, AUC
-import tensorflow as tf
-import plotly.express as px
+from tensorflow.keras.metrics import AUC, Precision, Recall
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.optimizers import Adam
 
 
 def prepare_train_val_split():
@@ -48,11 +48,17 @@ def train_NN(train_val_data, epochs, batch_size):
     model.compile(
         optimizer=Adam(),
         loss=CategoricalCrossentropy(),
-        metrics=['accuracy', Precision(name="precision"), Recall(name="recall"), AUC(name="auc")]
+        metrics=["accuracy", Precision(name="precision"), Recall(name="recall"), AUC(name="auc")],
     )
     history_obj = model.fit(
-        x_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=(x_val, y_val),
-        use_multiprocessing=True, workers=16
+        x_train,
+        y_train,
+        batch_size=batch_size,
+        epochs=epochs,
+        verbose=1,
+        validation_data=(x_val, y_val),
+        use_multiprocessing=True,
+        workers=16,
     )
     return history_obj
 
@@ -64,5 +70,11 @@ def plot_history(history, metric):
 
 
 if __name__ == "__main__":
-    history = train_NN(prepare_train_val_split(), batch_size=8, epochs=50)
-    plot_history(history, "accuracy")
+    # history = train_NN(prepare_train_val_split(), batch_size=8, epochs=50)
+    # plot_history(history, "accuracy")
+    dm = DatasetManager("data")
+    for x_train, x_val, y_train, y_val in dm.cross_validation(num_train_seasons=3, num_val_seasons=1, one_hot=True):
+        print(x_train)
+        print(y_train)
+        print(x_val)
+        print(y_val)
