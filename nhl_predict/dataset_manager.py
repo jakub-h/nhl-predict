@@ -303,6 +303,10 @@ class DatasetManager:
                                 stats_aggr[target_col] = games_stats.mean()
         return stats_aggr
 
+    def get_sample_data(self) -> Tuple[pd.DataFrame]:
+        x_sample, y_sample = self._load_dataset([2011, 2018])
+        return x_sample, y_sample
+
     def cross_validation(
         self, num_train_seasons: int = 3, num_val_seasons: int = 1, one_hot: bool = True
     ) -> Tuple[pd.DataFrame]:
