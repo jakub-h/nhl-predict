@@ -1,9 +1,9 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
-    name="src",
+    name="nhl-predict",
     version="2.0",
-    description="NHL predict",
+    description="Prediction of NHL games using ML",
     author="Jakub Hruska",
     author_mail="jhruska@mail.muni.cz",
     license="",

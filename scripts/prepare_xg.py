@@ -1,4 +1,4 @@
-from src.stats_scraper import StatsScraper
+from nhl_predict.stats.scraper import StatsScraper
 
 if __name__ == "__main__":
     ss = StatsScraper("../data")

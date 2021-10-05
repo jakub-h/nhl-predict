@@ -1,5 +1,5 @@
+from nhl_predict.xg.model_base import XGModel
 from sklearn.ensemble import ExtraTreesRegressor
-from src.xg_model_base import XGModel
 
 if __name__ == "__main__":
     """

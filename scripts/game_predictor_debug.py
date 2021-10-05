@@ -1,9 +1,9 @@
 import pandas as pd
 import plotly.express as px
 import tensorflow as tf
+from nhl_predict.dataset_manager import DatasetManager
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from src.dataset_manager import DatasetManager
 from tensorflow.keras.layers import Dense, Dropout, InputLayer
 from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.metrics import AUC, Precision, Recall
@@ -48,7 +48,12 @@ def train_NN(train_val_data, epochs, batch_size):
     model.compile(
         optimizer=Adam(),
         loss=CategoricalCrossentropy(),
-        metrics=["accuracy", Precision(name="precision"), Recall(name="recall"), AUC(name="auc")],
+        metrics=[
+            "accuracy",
+            Precision(name="precision"),
+            Recall(name="recall"),
+            AUC(name="auc"),
+        ],
     )
     history_obj = model.fit(
         x_train,
@@ -73,7 +78,9 @@ if __name__ == "__main__":
     # history = train_NN(prepare_train_val_split(), batch_size=8, epochs=50)
     # plot_history(history, "accuracy")
     dm = DatasetManager("data")
-    for x_train, x_val, y_train, y_val in dm.cross_validation(num_train_seasons=3, num_val_seasons=1, one_hot=True):
+    for x_train, x_val, y_train, y_val in dm.cross_validation(
+        num_train_seasons=3, num_val_seasons=1, one_hot=True
+    ):
         print(x_train)
         print(y_train)
         print(x_val)

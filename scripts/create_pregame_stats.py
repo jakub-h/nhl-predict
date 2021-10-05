@@ -1,6 +1,6 @@
 from multiprocessing import Pool
 
-from src.dataset_manager import DatasetManager
+from nhl_predict.dataset_manager import DatasetManager
 
 
 def parallel_dm_caller(season):

@@ -23,7 +23,9 @@ class BettingBot:
             return 0
         return self._bet_size
 
-    def _bet_season(self, season: int, strategy: Callable[[pd.Series], str], **strategy_kwargs) -> pd.DataFrame:
+    def _bet_season(
+        self, season: int, strategy: Callable[[pd.Series], str], **strategy_kwargs
+    ) -> pd.DataFrame:
         """
         Internal function that process bets in one season based on given betting strategy.
         Calculates revenues and deposits based on the odds.
@@ -40,10 +42,16 @@ class BettingBot:
         df["deposit"] = df.apply(self._get_deposit, axis=1)
         return df
 
-    def bet_season(self, season: int, strategy: Callable[[pd.Series], str], verbose=1, **strategy_kwargs) -> dict:
+    def bet_season(
+        self,
+        season: int,
+        strategy: Callable[[pd.Series], str],
+        verbose=1,
+        **strategy_kwargs,
+    ) -> dict:
         """
-        Process bets in one season based on given betting strategy. Summaries revenues, deposits, profit and
-        profit rate. If verbose > 0, it also prints the result.
+        Process bets in one season based on given betting strategy. Summaries revenues,
+        deposits, profit and profit rate. If verbose > 0, it also prints the result.
 
         :param season: int - season to process
         :param strategy: function - betting strategy
@@ -59,12 +67,19 @@ class BettingBot:
             profit_rate = profit / deposit * 100
         else:
             profit_rate = np.nan
-        result = {"revenue": revenue, "deposit": deposit, "profit": profit, "profit_rate": profit_rate}
+        result = {
+            "revenue": revenue,
+            "deposit": deposit,
+            "profit": profit,
+            "profit_rate": profit_rate,
+        }
         if verbose:
             print(f"## BettingBot (SEASON {season}/{season+1})")
             print(f"--> Strategy: {strategy.__doc__}")
             print(f"bet size:\t{self._bet_size} CZK")
-            print(f"deposit:\t{deposit:.2f} CZK ({df['bet'].notna().sum()} games * {self._bet_size} CZK)")
+            print(
+                f"deposit:\t{deposit:.2f} CZK ({df['bet'].notna().sum()} games * {self._bet_size} CZK)"
+            )
             print(f"revenue:\t{revenue:.2f} CZK")
             print(f"profit:\t\t{profit:.2f} CZK")
             print(f"profit rate:\t{profit_rate:.2f} %")
@@ -72,7 +87,11 @@ class BettingBot:
         return result
 
     def bet_strategy(
-        self, strategy: Callable[[pd.Series], str], season_range=(2005, 2018), verbose=0, **strategy_kwargs
+        self,
+        strategy: Callable[[pd.Series], str],
+        season_range=(2005, 2018),
+        verbose=0,
+        **strategy_kwargs,
     ) -> pd.DataFrame:
         """
         Tests given betting strategy on seasons from season_range.
@@ -86,13 +105,23 @@ class BettingBot:
         results = []
         header = None
         for season in range(season_range[0], season_range[1] + 1):
-            season_result = self.bet_season(season, strategy, verbose, **strategy_kwargs)
+            season_result = self.bet_season(
+                season, strategy, verbose, **strategy_kwargs
+            )
             results.append(season_result.values())
             header = season_result.keys()
-        return pd.DataFrame(results, columns=header, index=np.arange(season_range[0], season_range[1] + 1))
+        return pd.DataFrame(
+            results,
+            columns=header,
+            index=np.arange(season_range[0], season_range[1] + 1),
+        )
 
     def bootstrap_strategy(
-        self, strategy: Callable[[pd.Series], str], season_range=(2005, 2018), metric="profit_rate", **strategy_kwargs
+        self,
+        strategy: Callable[[pd.Series], str],
+        season_range=(2005, 2018),
+        metric="profit_rate",
+        **strategy_kwargs,
     ) -> tuple:
         """
         Tests a strategy on given seasons and returns bootstrapped estimation of mean of given metric.

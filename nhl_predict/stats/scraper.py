@@ -3,13 +3,12 @@ import pickle
 import time
 from pathlib import Path
 
+import nhl_predict.xg.parse_utils as pu
 import numpy as np
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
-
-import src.xg_parse_utils as pu
 
 
 class StatsScraper:
@@ -23,7 +22,9 @@ class StatsScraper:
         elif isinstance(data_path, str):
             self._data_path = Path(data_path)
         else:
-            raise ValueError(f"'data_path' must be a string or instance of Path class. Not {type(data_path)}.")
+            raise ValueError(
+                f"'data_path' must be a string or instance of Path class. Not {type(data_path)}."
+            )
 
     def download_season(self, season: int, n_jobs=4):
         """
@@ -91,9 +92,9 @@ class StatsScraper:
             filtered["teams"][team] = {}
             for key in ["id", "name", "triCode"]:
                 filtered["teams"][team][key] = game["gameData"]["teams"][team][key]
-            filtered["teams"][team]["teamStats"] = game["liveData"]["boxscore"]["teams"][team]["teamStats"][
-                "teamSkaterStats"
-            ]
+            filtered["teams"][team]["teamStats"] = game["liveData"]["boxscore"][
+                "teams"
+            ][team]["teamStats"]["teamSkaterStats"]
         i = 0
         for play in game["liveData"]["plays"]["allPlays"]:
             if bool(play["coordinates"]):
@@ -155,7 +156,11 @@ class StatsScraper:
 
         # Convert to pandas DataFrame
         ns = pd.DataFrame(new_stats)
-        ns = ns[~ns["type"].isin(["PGSTR", "PGEND", "ANTHEM", "PSTR", "PEND", "STOP", "GEND"])]
+        ns = ns[
+            ~ns["type"].isin(
+                ["PGSTR", "PGEND", "ANTHEM", "PSTR", "PEND", "STOP", "GEND"]
+            )
+        ]
         ns["str_away"] = pd.to_numeric(ns["str_away"], downcast="unsigned")
         ns["str_home"] = pd.to_numeric(ns["str_home"], downcast="unsigned")
         ns = ns.replace("\xa0", np.nan).drop("id", axis=1).reset_index(drop=True)
@@ -181,11 +186,15 @@ class StatsScraper:
         :param save_to_csv: boolean - return the result or save it to a csv file
         :return:
         """
-        print(f"## StatsExtractor: convert SEASON {season}/{season + 1} to a csv for a xG model.")
+        print(
+            f"## StatsExtractor: convert SEASON {season}/{season + 1} to a csv for a xG model."
+        )
         start = time.time()
         shots = []
 
-        with open(self._data_path / "games_raw" / f"{season}-{season+1}.pickle", "rb") as f:
+        with open(
+            self._data_path / "games_raw" / f"{season}-{season+1}.pickle", "rb"
+        ) as f:
             games = pickle.load(f)
         for game in games:
             shots.extend(pu.parse_game_for_xg(game))

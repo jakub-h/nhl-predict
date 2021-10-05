@@ -1,4 +1,4 @@
-from src.dataset_manager import DatasetManager
+from nhl_predict.dataset_manager import DatasetManager
 
 if __name__ == "__main__":
     dm = DatasetManager("data")

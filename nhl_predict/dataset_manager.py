@@ -6,8 +6,8 @@ import pandas as pd
 import tqdm
 from sklearn.preprocessing import MinMaxScaler
 
-import src.stats_utils as su
-from src.xg_model_base import XGModel
+import nhl_predict.stats.utils as su
+from nhl_predict.xg.model_base import XGModel
 
 
 class DatasetManager:
@@ -28,9 +28,13 @@ class DatasetManager:
         elif isinstance(data_path, str):
             self._data_path = Path(data_path)
         else:
-            raise ValueError(f"'data_path' must be a string or instance of Path class. Not {type(data_path)}.")
+            raise ValueError(
+                f"'data_path' must be a string or instance of Path class. Not {type(data_path)}."
+            )
 
-    def calculate_post_game_stats(self, season: int, save_to_csv: bool = False) -> Optional[pd.DataFrame]:
+    def calculate_post_game_stats(
+        self, season: int, save_to_csv: bool = False
+    ) -> Optional[pd.DataFrame]:
         """Create a dataset with post-game stats (actual stats from each game).
 
         - [away_ | home_] ... prefix
@@ -51,21 +55,38 @@ class DatasetManager:
             No overtime, only regulation.
         """
         # Load games raw play-by-play
-        with open(self._data_path / "games_raw" / f"{season}-{season+1}.pickle", "rb") as f:
+        with open(
+            self._data_path / "games_raw" / f"{season}-{season+1}.pickle", "rb"
+        ) as f:
             games_raw = pickle.load(f)
 
         # Load xG play-by-play
-        xg_pbp = pd.read_csv(self._data_path / "xg_pbp" / f"{season}-{season+1}.csv", index_col=0)
+        xg_pbp = pd.read_csv(
+            self._data_path / "xg_pbp" / f"{season}-{season+1}.csv", index_col=0
+        )
 
         # Load xG model
-        xg_model = XGModel(self._data_path, model=self._data_path.parent / "models/xg_extra_trees_n10")
+        xg_model = XGModel(
+            self._data_path, model=self._data_path.parent / "models/xg_extra_trees_n10"
+        )
 
         # Calculate xG predictions for all events (all games in the season)
         xg_pred = xg_model.predict(xg_pbp)
         xg_pbp["xg_pred"] = xg_pred
 
         # Define stats scheme
-        stat_names = ["G", "SOG", "SMISS", "HIT", "TAKE", "GIVE", "FOW", "BLK", "CORSI", "xG"]
+        stat_names = [
+            "G",
+            "SOG",
+            "SMISS",
+            "HIT",
+            "TAKE",
+            "GIVE",
+            "FOW",
+            "BLK",
+            "CORSI",
+            "xG",
+        ]
         schema = {"away_team_id": None, "home_team_id": None}
         for team in ["away", "home"]:
             for situation in ["ALL", "EV", "PP", "SH"]:
@@ -96,22 +117,35 @@ class DatasetManager:
 
                     # Add blocked shots (BLK is number of blocks of opposing team)
                     if team == "away":
-                        game_stats[f"away_CORSI_{situation}"] += game_stats[f"home_BLK_{situation}"]
+                        game_stats[f"away_CORSI_{situation}"] += game_stats[
+                            f"home_BLK_{situation}"
+                        ]
                     else:
-                        game_stats[f"home_CORSI_{situation}"] += game_stats[f"away_BLK_{situation}"]
+                        game_stats[f"home_CORSI_{situation}"] += game_stats[
+                            f"away_BLK_{situation}"
+                        ]
 
             # Calculate xG
             for team in ["away", "home"]:
                 for situation in self._SITUATIONS:
                     # Filter subset of events
                     is_home = 1 if team == "home" else 0
-                    subset = xg_pbp[(xg_pbp["game_id"] == raw_game["id"]) & (xg_pbp["is_home"] == is_home)]
+                    subset = xg_pbp[
+                        (xg_pbp["game_id"] == raw_game["id"])
+                        & (xg_pbp["is_home"] == is_home)
+                    ]
                     if situation == "EV":
-                        subset = subset[subset["strength_active"] == subset["strength_opp"]]
+                        subset = subset[
+                            subset["strength_active"] == subset["strength_opp"]
+                        ]
                     elif situation == "PP":
-                        subset = subset[subset["strength_active"] > subset["strength_opp"]]
+                        subset = subset[
+                            subset["strength_active"] > subset["strength_opp"]
+                        ]
                     elif situation == "SH":
-                        subset = subset[subset["strength_active"] < subset["strength_opp"]]
+                        subset = subset[
+                            subset["strength_active"] < subset["strength_opp"]
+                        ]
 
                     # Calculate sum of xGs for events
                     xg_sum = 0 if subset.empty else subset["xg_pred"].sum()
@@ -122,12 +156,21 @@ class DatasetManager:
         df.index += 1
         df = df.sort_index(1)
         if save_to_csv:
-            df.to_csv(self._data_path / "games_stats" / "post_game" / f"{season}-{season+1}.csv")
+            df.to_csv(
+                self._data_path
+                / "games_stats"
+                / "post_game"
+                / f"{season}-{season+1}.csv"
+            )
         else:
             return df
 
     def calculate_pre_game_stats(
-        self, season: int, last_n_games: int = 3, save_to_csv: bool = False, verbose: int = 0
+        self,
+        season: int,
+        last_n_games: int = 3,
+        save_to_csv: bool = False,
+        verbose: int = 0,
     ) -> Optional[pd.DataFrame]:
         """Create a dataset with pre-game stats (from post-game stats).
 
@@ -150,7 +193,8 @@ class DatasetManager:
             dataset with mean values of stats from previous games of each team per game
         """
         stats_post = pd.read_csv(
-            self._data_path / "games_stats" / "post_game" / f"{season}-{season+1}.csv", index_col=0
+            self._data_path / "games_stats" / "post_game" / f"{season}-{season+1}.csv",
+            index_col=0,
         )
         stats_pre = []
         iterator = tqdm.tqdm(stats_post.index) if verbose else stats_post.index
@@ -164,11 +208,14 @@ class DatasetManager:
                 prev_games = {"away": None, "home": None}
                 for prev_games_type in ["away", "home"]:
                     prev_games[prev_games_type] = stats_post[
-                        (stats_post.index < game_id) & (stats_post[f"{prev_games_type}_team_id"] == team_id)
+                        (stats_post.index < game_id)
+                        & (stats_post[f"{prev_games_type}_team_id"] == team_id)
                     ]
 
                 # Get stats aggregates from previous away/home games of selected team
-                team_stats[team] = self._get_stat_averages(prev_games=prev_games, last_n_games=last_n_games)
+                team_stats[team] = self._get_stat_averages(
+                    prev_games=prev_games, last_n_games=last_n_games
+                )
 
             merged_stats = {}
             for team in ["away", "home"]:
@@ -179,7 +226,12 @@ class DatasetManager:
         stats_pre = pd.DataFrame(stats_pre)
         stats_pre.index += 1
         if save_to_csv:
-            stats_pre.to_csv(self._data_path / "games_stats" / "pre_game" / f"{season}-{season + 1}.csv")
+            stats_pre.to_csv(
+                self._data_path
+                / "games_stats"
+                / "pre_game"
+                / f"{season}-{season + 1}.csv"
+            )
         else:
             return stats_pre
 
@@ -203,7 +255,11 @@ class DatasetManager:
         basic_stats = ["G", "SOG", "SMISS", "HIT", "TAKE", "GIVE", "BLK", "CORSI", "xG"]
 
         stats_aggr = {}  # Stats aggregates (mean values of past games)
-        for active_team in ["away", "home", "both"]:  # Previous away, home or all games of selected team
+        for active_team in [
+            "away",
+            "home",
+            "both",
+        ]:  # Previous away, home or all games of selected team
             opp_team = su.get_opp_team(active_team)
             for stat in basic_stats:
                 for situation in self._SITUATIONS:
@@ -211,13 +267,21 @@ class DatasetManager:
                     for last_games_flag in [False, True]:
                         for for_against in ["F", "A"]:
                             source_col = su.get_source_col_names(
-                                for_against, situation, active_team, stat, opp_situation, opp_team
+                                for_against,
+                                situation,
+                                active_team,
+                                stat,
+                                opp_situation,
+                                opp_team,
                             )
 
                             # Get per-game stats
                             if active_team == "both":
                                 games_stats = pd.concat(
-                                    [prev_games["away"][source_col[0]], prev_games["home"][source_col[1]]],
+                                    [
+                                        prev_games["away"][source_col[0]],
+                                        prev_games["home"][source_col[1]],
+                                    ],
                                 ).sort_index()
                             else:
                                 games_stats = prev_games[active_team][source_col]
@@ -226,11 +290,15 @@ class DatasetManager:
                             if last_games_flag:
                                 target_col = f"{stat}{for_against}_{situation}_{active_team}_last{last_n_games}"
                             else:
-                                target_col = f"{stat}{for_against}_{situation}_{active_team}"
+                                target_col = (
+                                    f"{stat}{for_against}_{situation}_{active_team}"
+                                )
 
                             # Store the aggregate
                             if last_games_flag:
-                                stats_aggr[target_col] = games_stats.tail(last_n_games).mean()
+                                stats_aggr[target_col] = games_stats.tail(
+                                    last_n_games
+                                ).mean()
                             else:
                                 stats_aggr[target_col] = games_stats.mean()
         return stats_aggr
@@ -272,8 +340,12 @@ class DatasetManager:
             x_val, y_val = self._load_dataset(val_seasons)
 
             scaler = MinMaxScaler(feature_range=(0, 1)).fit(x_train)
-            x_train = pd.DataFrame(scaler.transform(x_train), index=x_train.index, columns=x_train.columns)
-            x_val = pd.DataFrame(scaler.transform(x_val), index=x_val.index, columns=x_val.columns)
+            x_train = pd.DataFrame(
+                scaler.transform(x_train), index=x_train.index, columns=x_train.columns
+            )
+            x_val = pd.DataFrame(
+                scaler.transform(x_val), index=x_val.index, columns=x_val.columns
+            )
 
             if one_hot:
                 y_train = pd.get_dummies(y_train)
@@ -283,7 +355,9 @@ class DatasetManager:
 
             i += 1
             train_seasons = seasons[i : i + num_train_seasons]
-            val_seasons = seasons[i + num_train_seasons : i + num_train_seasons + num_val_seasons]
+            val_seasons = seasons[
+                i + num_train_seasons : i + num_train_seasons + num_val_seasons
+            ]
 
     def _load_dataset(self, seasons: Iterable[int]) -> Tuple[pd.DataFrame]:
         """Load pre-game dataset combined from `seasons` list.
@@ -303,13 +377,23 @@ class DatasetManager:
         outputs = []
         for season in seasons:
             # Inputs (x; pre-game stats)
-            season_path = self._data_path / "games_stats" / "pre_game" / f"{season}-{season+1}.csv"
+            season_path = (
+                self._data_path
+                / "games_stats"
+                / "pre_game"
+                / f"{season}-{season+1}.csv"
+            )
             df = pd.read_csv(season_path, index_col=0)
             df["season"] = f"{season}-{season+1}"
             inputs.append(df)
 
             # Outputs (y; outcomes of the games)
-            season_path = self._data_path / "games_stats" / "post_game" / f"{season}-{season+1}.csv"
+            season_path = (
+                self._data_path
+                / "games_stats"
+                / "post_game"
+                / f"{season}-{season+1}.csv"
+            )
             df = pd.read_csv(season_path, index_col=0)
             df = df[["away_G_ALL", "home_G_ALL"]]
             df["season"] = f"{season}-{season+1}"
