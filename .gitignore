@@ -20,3 +20,5 @@ notebooks/scrape_odds.ipynb
 # Models
 models/
 
+# Results of experiment
+results/

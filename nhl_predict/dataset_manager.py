@@ -308,7 +308,11 @@ class DatasetManager:
         return x_sample, y_sample
 
     def cross_validation(
-        self, num_train_seasons: int = 3, num_val_seasons: int = 1, one_hot: bool = True
+        self,
+        num_train_seasons: int = 3,
+        num_val_seasons: int = 1,
+        one_hot: bool = True,
+        normalize: bool = True,
     ) -> Tuple[pd.DataFrame]:
         """Task-specific cross validation (generator).
 
@@ -334,7 +338,6 @@ class DatasetManager:
             for x in sorted((self._data_path / "games_stats" / "pre_game").iterdir())
             if x.suffix == ".csv"
         ]
-        print(seasons)
 
         i = 0
         train_seasons = seasons[:num_train_seasons]
@@ -343,13 +346,16 @@ class DatasetManager:
             x_train, y_train = self._load_dataset(train_seasons)
             x_val, y_val = self._load_dataset(val_seasons)
 
-            scaler = MinMaxScaler(feature_range=(0, 1)).fit(x_train)
-            x_train = pd.DataFrame(
-                scaler.transform(x_train), index=x_train.index, columns=x_train.columns
-            )
-            x_val = pd.DataFrame(
-                scaler.transform(x_val), index=x_val.index, columns=x_val.columns
-            )
+            if normalize:
+                scaler = MinMaxScaler(feature_range=(0, 1)).fit(x_train)
+                x_train = pd.DataFrame(
+                    scaler.transform(x_train),
+                    index=x_train.index,
+                    columns=x_train.columns,
+                )
+                x_val = pd.DataFrame(
+                    scaler.transform(x_val), index=x_val.index, columns=x_val.columns
+                )
 
             if one_hot:
                 y_train = pd.get_dummies(y_train)

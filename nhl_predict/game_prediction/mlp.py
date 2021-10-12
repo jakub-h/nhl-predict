@@ -1,43 +1,53 @@
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import silence_tensorflow.auto  # type: ignore # noqa F401
 from nhl_predict.dataset_manager import DatasetManager
 from tensorflow.keras.layers import Dense, Dropout, InputLayer
 from tensorflow.keras.losses import CategoricalCrossentropy
-from tensorflow.keras.metrics import AUC, Accuracy, Precision, Recall
+from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
 
 
 class MLP:
-    """Wrapper class over a keras Sequential MLP model."""
+    """Wrapper class over a keras Sequential MLP (MultiLayer Perceptron) model."""
 
-    def __init__(self, project_root: Path) -> None:
-        self._model = None
-        self._project_root = project_root
-
-    def build(
+    def __init__(
         self,
+        project_root: Path,
         hidden_layers: str = "256-64-16",
         dropout: int = 0.3,
-        verbose: bool = False,
-    ):
-        """Build and compile MLP model for prediction of NHL games.
+    ) -> None:
+        """Construct an instance of MLP class.
 
         Parameters
         ----------
+        project_root : Path
+            Path to the project's root dir
         hidden_layers : str, optional
             Topology of the network (hidden layers), by default "256-64-16". There is
             always input layer and softmax head defined byt the task.
         dropout : int, optional
             Dropout coefficient., by default 0.3
+        """
+        self._model = None
+        self._project_root = project_root
+        self._hidden_layers = hidden_layers
+        self._dropout = dropout
+
+    def build(self, verbose: bool = False) -> None:
+        """Build and compile MLP model for prediction of NHL games.
+
+        Parameters
+        ----------
         verbose : bool, optional
             Verbosity flag, by default False
         """
-        neuron_nums = hidden_layers.split("-")
+        neuron_nums = self._hidden_layers.split("-")
         dm = DatasetManager(self._project_root / "data")
         x_sample, _ = dm.get_sample_data()
 
@@ -46,7 +56,7 @@ class MLP:
         self._model.add(InputLayer(input_shape=(x_sample.shape[1],)))
         for layer in neuron_nums:
             self._model.add(Dense(int(layer), activation="relu"))
-            self._model.add(Dropout(dropout))
+            self._model.add(Dropout(self._dropout))
         self._model.add(Dense(3, activation="softmax", name="output"))
 
         # Compile the model
@@ -54,7 +64,7 @@ class MLP:
             optimizer=Adam(),
             loss=CategoricalCrossentropy(),
             metrics=[
-                Accuracy(name="accuracy"),
+                "accuracy",
                 Precision(name="precision"),
                 Recall(name="recall"),
                 AUC(name="auc"),
@@ -63,6 +73,17 @@ class MLP:
 
         if verbose:
             self._model.summary()
+
+    def get_metrics_names(self) -> List:
+        """
+        Getter for names of metrics of the underlying Keras model.
+
+        Returns
+        -------
+        list
+            metrics names
+        """
+        return self._model.metrics_names
 
     def fit(
         self,
