@@ -4,7 +4,7 @@ import json
 from argparse import ArgumentParser
 from pathlib import Path
 
-from nhl_predict.game_prediction.expoeriment import Experiment
+from nhl_predict.game_prediction.experiment import Experiment
 from tqdm import tqdm
 
 
@@ -21,10 +21,23 @@ def main():
     args = get_args()
     project_root = Path(args.path)
     param_grid = [
-        ["128-32", "256-64-16", "512-128-32"],  # topology
-        [5, 10, 25, 50, 100],  # epochs
-        [32, 64, 128, 256],  # batch_size
-        [0.1, 0.2, 0.3, 0.4],  # dropout
+        [
+            "64",
+            "64-16",
+            "64-16-8",
+            "128",
+            "128-32",
+            "128-32-8",
+            "256",
+            "256-64",
+            "256-64-16",
+            "512",
+            "512-128",
+            "512-128-32",
+        ],  # topology
+        [60],  # epochs
+        [64, 128, 256, 512],  # batch_size
+        [0.05, 0.1, 0.2],  # dropout
     ]
     param_list = list(itertools.product(*param_grid))
 
@@ -38,7 +51,7 @@ def main():
             dropout=dropout,
             verbose=False,
         )
-        result = exp.run(num_train_seasons=3, num_val_seasons=1)
+        result = exp.run_cv(num_train_seasons=3, num_val_seasons=1)
         filename = (
             f"{timestamp.date()}_{timestamp.hour:02d}{timestamp.minute:02d}"
             f"{timestamp.second:02d}"

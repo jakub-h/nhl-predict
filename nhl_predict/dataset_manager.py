@@ -1,6 +1,6 @@
 import pickle
 from pathlib import Path
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 import pandas as pd
 import tqdm
@@ -304,8 +304,87 @@ class DatasetManager:
         return stats_aggr
 
     def get_sample_data(self) -> Tuple[pd.DataFrame]:
+        """Return sample of the data for game prediciton.
+
+        Returns
+        -------
+        Tuple[pd.DataFrame]
+            (x, y) - x: inputs (pre-game stats per game)
+                   - y: outputs (outcome [away team win, draw, home team win] of each game)
+        """
         x_sample, y_sample = self._load_dataset([2011, 2018])
         return x_sample, y_sample
+
+    def get_dataset_by_seasons(self, seasons: List[int]) -> Tuple[pd.DataFrame]:
+        """Return dataset (pre-game) for game prediction by selected seasons.
+
+        Parameters
+        ----------
+        seasons : List[int]
+            list of seasons to load
+
+        Returns
+        -------
+        Tuple[pd.DataFrame]
+            (x, y) - x: inputs (pre-game stats per game)
+                   - y: outputs (outcome [away team win, draw, home team win] of each game)
+        """
+        return self._load_dataset(seasons)
+
+    def _load_dataset(self, seasons: Iterable[int]) -> Tuple[pd.DataFrame]:
+        """Load pre-game dataset combined from `seasons` list.
+
+        Parameters
+        ----------
+        seasons : Iterable[int]
+            list of seasons for the dataset (e.g. [2011, 2012, 2013])
+
+        Returns
+        -------
+        Tuple[pd.DataFrame]
+            (x, y) - x: inputs (pre-game stats per game)
+                   - y: outputs (outcome [away team win, draw, home team win] of each game)
+        """
+        inputs = []
+        outputs = []
+        for season in seasons:
+            # Inputs (x; pre-game stats)
+            season_path = (
+                self._data_path
+                / "games_stats"
+                / "pre_game"
+                / f"{season}-{season+1}.csv"
+            )
+            df = pd.read_csv(season_path, index_col=0)
+            df["season"] = f"{season}-{season+1}"
+            inputs.append(df)
+
+            # Outputs (y; outcomes of the games)
+            season_path = (
+                self._data_path
+                / "games_stats"
+                / "post_game"
+                / f"{season}-{season+1}.csv"
+            )
+            df = pd.read_csv(season_path, index_col=0)
+            df = df[["away_G_ALL", "home_G_ALL"]]
+            df["season"] = f"{season}-{season+1}"
+            outputs.append(df)
+        x = pd.concat(inputs).reset_index()
+        y = pd.concat(outputs).reset_index()
+
+        # Basic preprocessing
+        season_col = x.pop("season")
+        x.insert(0, "season", season_col)
+        x = x.rename(columns={"index": "game_id"})
+        x = x.set_index(["season", "game_id"])
+
+        y["goal_diff"] = y["away_G_ALL"] - y["home_G_ALL"]
+        y["result"] = y["goal_diff"].apply(su.determine_winner)
+        y = y.rename(columns={"index": "game_id"})
+        y = y[["season", "game_id", "result"]]
+        y = y.set_index(["season", "game_id"])
+        return x, y
 
     def cross_validation(
         self,
@@ -368,58 +447,3 @@ class DatasetManager:
             val_seasons = seasons[
                 i + num_train_seasons : i + num_train_seasons + num_val_seasons
             ]
-
-    def _load_dataset(self, seasons: Iterable[int]) -> Tuple[pd.DataFrame]:
-        """Load pre-game dataset combined from `seasons` list.
-
-        Parameters
-        ----------
-        seasons : Iterable[int]
-            list of seasons for the dataset (e.g. [2011, 2012, 2013])
-
-        Returns
-        -------
-        Tuple[pd.DataFrame]
-            (x, y) - x: inputs (pre-game stats per game)
-                   - y: outputs (outcome [away team win, draw, home team win] of each game)
-        """
-        inputs = []
-        outputs = []
-        for season in seasons:
-            # Inputs (x; pre-game stats)
-            season_path = (
-                self._data_path
-                / "games_stats"
-                / "pre_game"
-                / f"{season}-{season+1}.csv"
-            )
-            df = pd.read_csv(season_path, index_col=0)
-            df["season"] = f"{season}-{season+1}"
-            inputs.append(df)
-
-            # Outputs (y; outcomes of the games)
-            season_path = (
-                self._data_path
-                / "games_stats"
-                / "post_game"
-                / f"{season}-{season+1}.csv"
-            )
-            df = pd.read_csv(season_path, index_col=0)
-            df = df[["away_G_ALL", "home_G_ALL"]]
-            df["season"] = f"{season}-{season+1}"
-            outputs.append(df)
-        x = pd.concat(inputs).reset_index()
-        y = pd.concat(outputs).reset_index()
-
-        # Basic preprocessing
-        season_col = x.pop("season")
-        x.insert(0, "season", season_col)
-        x = x.rename(columns={"index": "game_id"})
-        x = x.set_index(["season", "game_id"])
-
-        y["goal_diff"] = y["away_G_ALL"] - y["home_G_ALL"]
-        y["result"] = y["goal_diff"].apply(su.determine_winner)
-        y = y.rename(columns={"index": "game_id"})
-        y = y[["season", "game_id", "result"]]
-        y = y.set_index(["season", "game_id"])
-        return x, y

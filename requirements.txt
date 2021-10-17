@@ -8,6 +8,8 @@ scipy==1.6.2
 numpy==1.19.5
 setuptools==50.3.2
 bootstrapped==0.0.2
+matplotlib==3.4.3
+seaborn==0.11.2
 
 # Scraping
 lxml==4.6.3
@@ -19,7 +21,6 @@ tqdm==4.61.1
 requests==2.25.1
 
 # xG model
-matplotlib
 scikit-learn==0.24.2
 bs4==0.0.1
 hockey_scraper==1.37.7

@@ -1,87 +1,34 @@
-import pandas as pd
-import plotly.express as px
-import tensorflow as tf
+from argparse import ArgumentParser
+from pathlib import Path
+
 from nhl_predict.dataset_manager import DatasetManager
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from tensorflow.keras.layers import Dense, Dropout, InputLayer
-from tensorflow.keras.losses import CategoricalCrossentropy
-from tensorflow.keras.metrics import AUC, Precision, Recall
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.optimizers import Adam
+from nhl_predict.game_prediction.experiment import Experiment
 
 
-def prepare_train_val_split():
-    dm = DatasetManager("data")
-    x, y = dm.get_whole_dataset()
-    x = x.dropna(how="any")
-    y = pd.get_dummies(y[x.index])
-
-    x_train, x_val, y_train, y_val = train_test_split(x, y, train_size=0.75)
-    scaler = StandardScaler().fit(x_train)
-    x_train_sc = scaler.transform(x_train)
-    x_val_sc = scaler.transform(x_val)
-
-    return x_train_sc, x_val_sc, y_train, y_val
-
-
-def train_NN(train_val_data, epochs, batch_size):
-    x_train, x_val, y_train, y_val = train_val_data
-
-    model = Sequential()
-    model.add(InputLayer(input_shape=x_train.shape[1]))
-    model.add(Dense(512, activation=tf.nn.relu))
-    model.add(Dropout(0.3))
-    model.add(Dense(256, activation=tf.nn.relu))
-    model.add(Dropout(0.3))
-    model.add(Dense(128, activation=tf.nn.relu))
-    model.add(Dropout(0.3))
-    model.add(Dense(64, activation=tf.nn.relu))
-    model.add(Dropout(0.3))
-    model.add(Dense(32, activation=tf.nn.relu))
-    model.add(Dropout(0.3))
-    model.add(Dense(16, activation=tf.nn.relu))
-    model.add(Dropout(0.3))
-    model.add(Dense(8, activation=tf.nn.relu))
-    model.add(Dropout(0.3))
-    model.add(Dense(3, activation=tf.nn.softmax))
-    model.compile(
-        optimizer=Adam(),
-        loss=CategoricalCrossentropy(),
-        metrics=[
-            "accuracy",
-            Precision(name="precision"),
-            Recall(name="recall"),
-            AUC(name="auc"),
-        ],
+def get_args():
+    parser = ArgumentParser("Script for stats and histograms in age-gender-race task.")
+    parser.add_argument(
+        "-p", "--path", type=str, help="Path to project's root dir.", required=True
     )
-    history_obj = model.fit(
-        x_train,
-        y_train,
-        batch_size=batch_size,
-        epochs=epochs,
-        verbose=1,
-        validation_data=(x_val, y_val),
-        use_multiprocessing=True,
-        workers=16,
-    )
-    return history_obj
 
-
-def plot_history(history, metric):
-    df = pd.DataFrame(history.history)
-    fig = px.line(df, y=[metric, f"val_{metric}"])
-    fig.show()
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    # history = train_NN(prepare_train_val_split(), batch_size=8, epochs=50)
-    # plot_history(history, "accuracy")
-    dm = DatasetManager("data")
-    for x_train, x_val, y_train, y_val in dm.cross_validation(
-        num_train_seasons=3, num_val_seasons=1, one_hot=True
-    ):
-        print(x_train)
-        print(y_train)
-        print(x_val)
-        print(y_val)
+    args = get_args()
+    project_root = Path(args.path)
+    dm = DatasetManager(project_root / "data")
+    train_seasons = [2011, 2012, 2013, 2014, 2015, 2016]
+    val_seasons = [2017, 2018]
+    exp = Experiment(
+        project_root=project_root,
+        hidden_layers="512-128",
+        epochs=60,
+        batch_size=128,
+        dropout=0.1,
+        verbose=True,
+    )
+    history = exp.train_final_model(train_seasons, val_seasons)
+    x_val, y_val = dm.get_dataset_by_seasons(val_seasons)
+    x_train, y_train = dm.get_dataset_by_seasons(train_seasons)
+    train_pred = print(exp.predict(x_train))

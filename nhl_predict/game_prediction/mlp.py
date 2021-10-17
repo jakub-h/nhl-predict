@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.express as px
 import silence_tensorflow.auto  # type: ignore # noqa F401
 from nhl_predict.dataset_manager import DatasetManager
+from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.layers import Dense, Dropout, InputLayer
 from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.metrics import AUC, Precision, Recall
@@ -119,10 +120,16 @@ class MLP:
         history : pd.DataFrame
             Tracking of various metrics during the training.
         """
+        callbacks = []
         if x_val is None or y_val is None:
             validation_data = None
         else:
             validation_data = (x_val, y_val)
+            callbacks.append(
+                EarlyStopping(
+                    monitor="val_loss", patience=15, restore_best_weights=True
+                )
+            )
 
         history_obj = self._model.fit(
             x_train,
@@ -131,9 +138,12 @@ class MLP:
             epochs=epochs,
             verbose=verbose,
             validation_data=validation_data,
+            callbacks=callbacks,
         )
-
-        history = pd.DataFrame(history_obj.history, index=np.arange(1, epochs + 1))
+        history = pd.DataFrame(
+            history_obj.history,
+            index=np.arange(1, len(history_obj.history["loss"]) + 1),
+        )
         return history
 
     def evaluate(
@@ -166,7 +176,6 @@ class MLP:
     def predict(
         self,
         x: pd.DataFrame,
-        y_true: pd.DataFrame,
         batch_size: int = 32,
         verbose: int = 0,
     ) -> pd.DataFrame:
@@ -189,7 +198,7 @@ class MLP:
             [description]
         """
         result = self._model.predict(x, batch_size, verbose)
-        return pd.DataFrame(result, columns=y_true.columns)
+        return pd.DataFrame(result, columns=["away", "draw", "home"], index=x.index)
 
     @staticmethod
     def plot_training_history(history, metric):
