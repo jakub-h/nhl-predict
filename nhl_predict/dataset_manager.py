@@ -356,7 +356,7 @@ class DatasetManager:
                 / f"{season}-{season+1}.csv"
             )
             df = pd.read_csv(season_path, index_col=0)
-            df["season"] = f"{season}-{season+1}"
+            df["season"] = season
             inputs.append(df)
 
             # Outputs (y; outcomes of the games)
@@ -368,7 +368,7 @@ class DatasetManager:
             )
             df = pd.read_csv(season_path, index_col=0)
             df = df[["away_G_ALL", "home_G_ALL"]]
-            df["season"] = f"{season}-{season+1}"
+            df["season"] = season
             outputs.append(df)
         x = pd.concat(inputs).reset_index()
         y = pd.concat(outputs).reset_index()

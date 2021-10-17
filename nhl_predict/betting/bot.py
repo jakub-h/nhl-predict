@@ -7,14 +7,14 @@ import pandas as pd
 
 
 class BettingBot:
-    def __init__(self, odds_path_base, bet_size):
-        self._base_path = odds_path_base
+    def __init__(self, project_root_path, bet_size):
+        self._project_root = project_root_path
         self._bet_size = bet_size
 
     def _get_revenue(self, game: pd.Series) -> float:
         """If the bet was won, returns bet_size * odd (revenue). Otherwise returns 0."""
         if game["win"]:
-            return self._bet_size * game[game["bet"]]
+            return self._bet_size * game[f"{game['bet']}_odd"]
         return 0
 
     def _get_deposit(self, game: pd.Series) -> int:
@@ -35,7 +35,23 @@ class BettingBot:
         :param strategy_kwargs: dict - Additional arguments for strategy function.
         :return: pd.DataFrame - with added columns ['bet', 'win', 'revenue', 'deposit']
         """
-        df = pd.read_pickle(self._base_path / f"{season}-{season + 1}.pkl")
+        odds = pd.read_pickle(
+            self._project_root / "data" / "odds" / f"{season}-{season + 1}_gameid.pkl"
+        )
+        predictions = pd.read_pickle(
+            self._project_root
+            / "data"
+            / "games_predictions"
+            / f"{season}-{season+1}.pkl"
+        )
+        df = pd.merge(
+            odds,
+            predictions,
+            how="outer",
+            left_index=True,
+            right_index=True,
+            suffixes=("_odd", "_pred"),
+        )
         df["bet"] = df.apply(strategy, **strategy_kwargs, axis=1)
         df["win"] = df["result"] == df["bet"]
         df["revenue"] = df.apply(self._get_revenue, axis=1)
@@ -114,7 +130,7 @@ class BettingBot:
             results,
             columns=header,
             index=np.arange(season_range[0], season_range[1] + 1),
-        )
+        ).round(2)
 
     def bootstrap_strategy(
         self,

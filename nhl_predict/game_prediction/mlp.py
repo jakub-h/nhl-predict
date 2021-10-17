@@ -198,7 +198,8 @@ class MLP:
             [description]
         """
         result = self._model.predict(x, batch_size, verbose)
-        return pd.DataFrame(result, columns=["away", "draw", "home"], index=x.index)
+        df = pd.DataFrame(result, columns=["2", "X", "1"], index=x.index)
+        return df[["1", "X", "2"]]
 
     @staticmethod
     def plot_training_history(history, metric):
