@@ -26,7 +26,11 @@ class OddsScraper:
         :param season: int - initial year of a season (e.g. 2015 for 2015/2016 season)
         :return: pd.DataFrame - all reg. season games with pregame odds (home "1", draw "X", away "2") and final score.
         """
-        print(f"## OddsScraper: Scraping season {season}-{season+1} ... ", end="", flush=True)
+        print(
+            f"## OddsScraper: Scraping season {season}-{season+1} ... ",
+            end="",
+            flush=True,
+        )
         start = time.time()
         season_url = urljoin(self._base_url, f"nhl-{season}-{season+1}/")
         page_id = 1
@@ -121,10 +125,14 @@ class OddsScraper:
             elif state == "teams":
                 game = [f"{date}-{row_split[0]}"]
                 if ":" not in row_split[-2] and ":" not in row_split[-1]:
-                    game.extend(OddsScraper._parse_teams_row(row_split[1:], standard=False))
+                    game.extend(
+                        OddsScraper._parse_teams_row(row_split[1:], standard=False)
+                    )
                     state = "score/date/teams"
                 else:
-                    game.extend(OddsScraper._parse_teams_row(row_split[1:], standard=True))
+                    game.extend(
+                        OddsScraper._parse_teams_row(row_split[1:], standard=True)
+                    )
                     i_odds = 0
                     state = "odds"
             # Process 'score' row (only when there is some non-standard row - e.g. Winter Classic note or no result
