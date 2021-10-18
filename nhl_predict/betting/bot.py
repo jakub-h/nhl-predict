@@ -52,10 +52,15 @@ class BettingBot:
             right_index=True,
             suffixes=("_odd", "_pred"),
         )
+        for col in ["1", "X", "2"]:
+            df[f"{col}_pred"] = 1 / (df[f"{col}_pred"])
+        df["odd_sum"] = df["1_odd"] + df["X_odd"] + df["2_odd"]
+        df["pred_sum"] = df["1_pred"] + df["X_pred"] + df["2_pred"]
         df["bet"] = df.apply(strategy, **strategy_kwargs, axis=1)
         df["win"] = df["result"] == df["bet"]
         df["revenue"] = df.apply(self._get_revenue, axis=1)
         df["deposit"] = df.apply(self._get_deposit, axis=1)
+
         return df
 
     def bet_season(

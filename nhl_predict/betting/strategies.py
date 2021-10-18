@@ -94,10 +94,21 @@ def high_sum_draw(game: pd.Series, threshold=5) -> str:
     return np.nan
 
 
-def game_model_basic(game: pd.Series, threshold=0.4) -> str:
+def game_model_favorite(game: pd.Series, odd_range=(1, 4)) -> str:
     predictions = game["1_pred":"2_pred"]
     if any(predictions.isna()):
         return np.nan
-    if predictions.max() > threshold:
-        return _COLS[np.argmax(predictions)]
+    if odd_range[0] < predictions.min() < odd_range[1]:
+        return _COLS[np.argmin(predictions)]
+    return np.nan
+
+
+def game_model_best_value(game: pd.Series, threshold: int = 0.2) -> str:
+    if any(game["1_pred":"2_pred"].isna()):
+        return np.nan
+    values = []
+    for col in ["1", "X", "2"]:
+        values.append(game[f"{col}_odd"] - game[f"{col}_pred"])
+    if np.argmax(values) > threshold:
+        return _COLS[np.argmax(values)]
     return np.nan
