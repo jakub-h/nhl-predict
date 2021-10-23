@@ -1,8 +1,29 @@
-__pycache__
-base_dataset*.csv
-human_readable*.csv
-folds/
-seasonal_splits/
-*.pdf
-venv
-.vscode
+# PyCharm
+.idea/
+
+# VSCode
+.vscode/
+
+# Jupyter
+notebooks/.ipynb_checkpoints
+
+# Data and other resources
+*.csv
+*.pkl
+*.pickle
+
+# Egg etc.
+*.egg-info/
+**/__pycache__/
+notebooks/scrape_odds.ipynb
+
+# Models
+models/
+
+# Results of experiment
+results/
+
+# Plots
+outputs/
+
+report/
