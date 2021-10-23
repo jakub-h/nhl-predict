@@ -22,3 +22,6 @@ models/
 
 # Results of experiment
 results/
+
+# Plots
+outputs/plots/

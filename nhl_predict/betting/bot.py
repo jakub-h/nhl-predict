@@ -83,13 +83,15 @@ class BettingBot:
         df = self._bet_season(season, strategy, **strategy_kwargs)
         revenue = df["revenue"].sum()
         deposit = df["deposit"].sum()
+        bet_ratio = df["bet"].count() / df["bet"].size
         profit = revenue - deposit
         if deposit > 0:
-            profit_rate = profit / deposit * 100
+            profit_rate = profit / deposit
         else:
             profit_rate = np.nan
         result = {
             "revenue": revenue,
+            "bet_ratio": bet_ratio,
             "deposit": deposit,
             "profit": profit,
             "profit_rate": profit_rate,
@@ -98,12 +100,14 @@ class BettingBot:
             print(f"## BettingBot (SEASON {season}/{season+1})")
             print(f"--> Strategy: {strategy.__doc__}")
             print(f"bet size:\t{self._bet_size} CZK")
+            print(f"bet ratio:\t{bet_ratio:.4f}")
             print(
-                f"deposit:\t{deposit:.2f} CZK ({df['bet'].notna().sum()} games * {self._bet_size} CZK)"
+                f"deposit:\t{deposit:.2f} CZK ({df['bet'].notna().sum()} games * "
+                f"{self._bet_size} CZK)"
             )
             print(f"revenue:\t{revenue:.2f} CZK")
             print(f"profit:\t\t{profit:.2f} CZK")
-            print(f"profit rate:\t{profit_rate:.2f} %")
+            print(f"profit rate:\t{profit_rate:.4f}")
             print()
         return result
 
