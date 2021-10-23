@@ -24,4 +24,6 @@ models/
 results/
 
 # Plots
-outputs/plots/
+outputs/
+
+report/
