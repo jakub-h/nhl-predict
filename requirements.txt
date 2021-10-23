@@ -26,5 +26,4 @@ bs4==0.0.1
 hockey_scraper==1.37.7
 src==2.0
 ThinkBayes2==2.0.0
-tensorflow-gpu==2.5.0
 
