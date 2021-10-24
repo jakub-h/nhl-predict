@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 
 def get_args():
-    parser = ArgumentParser("Script for stats and histograms in age-gender-race task.")
+    parser = ArgumentParser("Script for game-predictor cv gridsearch.")
     parser.add_argument(
         "-p", "--path", type=str, help="Path to project's root dir.", required=True
     )

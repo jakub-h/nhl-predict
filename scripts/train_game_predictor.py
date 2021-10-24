@@ -6,7 +6,7 @@ from nhl_predict.game_prediction.experiment import Experiment
 
 
 def get_args():
-    parser = ArgumentParser("Script for stats and histograms in age-gender-race task.")
+    parser = ArgumentParser("Script for training game predictor.")
     parser.add_argument(
         "-p", "--path", type=str, help="Path to project's root dir.", required=True
     )

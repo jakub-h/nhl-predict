@@ -44,7 +44,7 @@ def away(game: pd.Series, odd_range=(1, 8)) -> str:
 def diff_small_underdog(game: pd.Series, threshold=1.0) -> str:
     """Bets on underdog when the diff (odd_under - odd_fav) is lesser than threshold."""
     diff = game["2_odd"] - game["1_odd"]  # away - home
-    if abs(diff) > threshold:
+    if abs(diff) < threshold:
         if diff > 0:
             return "2"
         return "1"
@@ -54,7 +54,7 @@ def diff_small_underdog(game: pd.Series, threshold=1.0) -> str:
 def diff_small_fav(game: pd.Series, threshold=1.0) -> str:
     """Bets on underdog when the diff (odd_under - odd_fav) is lesser than threshold."""
     diff = game["2_odd"] - game["1_odd"]  # away - home
-    if abs(diff) > threshold:
+    if abs(diff) < threshold:
         if diff > 0:
             return "1"
         return "2"

@@ -12,7 +12,7 @@ from nhl_predict.betting.bot import BettingBot
 
 
 def get_args():
-    parser = ArgumentParser("Script for stats and histograms in age-gender-race task.")
+    parser = ArgumentParser("Script to run betting bot")
     parser.add_argument(
         "-p", "--path", type=str, help="Path to project's root dir.", required=True
     )
@@ -103,7 +103,7 @@ def search_odd_range(path, strategy, dataset, metric):
 
 
 def search_threshold(path, strategy, dataset, metrics):
-    thresholds = np.linspace(0, 1.4, 20)
+    thresholds = np.linspace(4.5, 7, 20)
     results = {}
     for metric in metrics:
         args = [(t, path, strategy, dataset, metric) for t in thresholds]
@@ -136,7 +136,7 @@ def range_strategies(project_root):
     for strategy in [bstr.favorite, bstr.game_model_favorite]:
         for dataset, seasons in zip(["train", "val"], [(2011, 2015), (2016, 2018)]):
             df = bot.bet_strategy(strategy, seasons, odd_range=(1.3, 2.1))
-            print(f"Strategy: {strategy.__name__} ({dataset})")
+            print(f"Strategy: {strategy.__name__} ({dataset}) odd_range: {(1.3, 2.1)}")
             print(df)
             print()
             df.to_latex(
@@ -150,11 +150,12 @@ def range_strategies(project_root):
 def threshold_strategies(project_root):
     bot = BettingBot(project_root, 10)
     for strategy, threshold in zip(
-        [bstr.game_model_best_value, bstr.diff_small_underdog], [0.45, 3.5]
+        [bstr.high_sum_underdog, bstr.game_model_best_value, bstr.diff_small_underdog],
+        [6.5, 0.5, 0.5],
     ):
         for dataset, seasons in zip(["train", "val"], [(2011, 2015), (2016, 2018)]):
             df = bot.bet_strategy(strategy, seasons, threshold=threshold)
-            print(f"Strategy: {strategy.__name__} ({dataset})")
+            print(f"Strategy: {strategy.__name__} ({dataset}) threshold: {threshold}")
             print(df)
             print()
             df.to_latex(
